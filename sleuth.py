@@ -21,7 +21,7 @@ def junk():
     return decorator
 
 
-def logCalls(enterFmtStr=None, exitFmtStr=None):
+def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None):
     '''
     A decorator that logs call information about a function. Logging is
     performed when the decorated function is entered as well as exited.  The
@@ -40,6 +40,9 @@ def logCalls(enterFmtStr=None, exitFmtStr=None):
         '[{}] Exiting {}()\t[{} seconds]'.
     '''
 
+    if func is None:
+        return partial(func, enterFmtStr=enterFmtStr, exitFmtStr=exitFmtStr)
+
     import time
 
     # The number of times the wrapped function has been called
@@ -51,24 +54,81 @@ def logCalls(enterFmtStr=None, exitFmtStr=None):
     if exitFmtStr is None:
         exitFmtStr = '[{}] Exiting {}()\t[{} seconds]'
 
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            nonlocal nCalls
-            logger = logging.getLogger(func.__module__)
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        nonlocal nCalls
+        logger = logging.getLogger(func.__module__)
 
-            logger.debug(enterFmtStr.format(nCalls, func.__name__))
-            callNumber = nCalls
-            nCalls = nCalls + 1
-            start = time.time()
-            result = func(*args, **kwargs)
-            end = time.time()
-            logger.debug(exitFmtStr.format(callNumber, func.__name__,
-                                           round(end-start, 4)))
+        logger.debug(enterFmtStr.format(nCalls, func.__name__))
+        callNumber = nCalls
+        nCalls = nCalls + 1
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        logger.debug(exitFmtStr.format(callNumber, func.__name__,
+                                       round(end-start, 4)))
 
-            return result
-        return wrapper
-    return decorator
+        return result
+    return wrapper
+
+
+def breakOnEnter(func=None, *, debugger='pdb'):
+    '''
+    A decorator that causes debug mode to be entered when the decorated
+    function is called.
+
+    func : The function to be decorated.
+    debugger : The debugger to use when debug mode is entered. This can be
+        either the debugging module itself or a string containing the name of
+        the debugging module. Currently, pdb and ipdb are supported.
+    '''
+
+    if func is None:
+        return partial(breakOnEnter, debugger=debugger)
+
+    debugger = _import(debugger)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = debugger.runcall(func, *args, **kwargs)
+        return result
+    return wrapper
+
+
+def breakOnExit(func=None, *, debugger='pdb'):
+    '''
+    A decorator that causes debug mode to be entered when the decorated
+    function exits.
+
+    func : The function to be decorated.
+    debugger : The debugger to use when debug mode is entered. This can be
+        either the debugging module itself or a string containing the name of
+        the debugging module. Currently, pdb and ipdb are supported.
+    '''
+    if func is None:
+        return partial(breakOnExit, debugger=debugger)
+
+    debugger = _import(debugger)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        debug_frame = sys._getframe.f_back
+
+        if debugger.__name__ == 'pdb':
+            debugger.Pdb().set_trace(debug_frame)
+        else:
+            debugger.set_trace(debug_frame)
+
+        return result
+    return wrapper
+
+
+def breakOnResult(func, *, debugger='pdb'):
+    pass
+
+def breakOnException(func, *, debugger='pdb'):
+    pass
 
 
 class Sleuth:
@@ -190,6 +250,20 @@ def run(filename):
         code = f.read()
 
     exec(code, globals, locals)
+
+
+def _import(module):
+    if isinstance(module, types.ModuleType):
+        return module
+    elif isinstance(module, str):
+        major, minor, *junk = sys.version_info
+        if major >= 3 and minor >= 1:
+            import importlib
+            return importlib.import_module(module)
+        else:
+            return __import__(module)
+    else:
+        raise ImportError
 
 
 if __name__ == '__main__':
