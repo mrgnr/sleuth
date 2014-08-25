@@ -113,22 +113,72 @@ def breakOnExit(func=None, *, debugger='pdb'):
     @wraps(func)
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
-        debug_frame = sys._getframe.f_back
 
-        if debugger.__name__ == 'pdb':
-            debugger.Pdb().set_trace(debug_frame)
-        else:
-            debugger.set_trace(debug_frame)
+        debug_frame = sys._getframe.f_back
+        _set_trace(debug_frame, debugger)
 
         return result
     return wrapper
 
 
-def breakOnResult(func, *, debugger='pdb'):
-    pass
+def breakOnResult(func=None, *, compare=None, debugger='pdb'):
+    '''
+    A decorator that causes debug mode to be entered when the decorated
+    function returns a certain result.
 
-def breakOnException(func, *, debugger='pdb'):
-    pass
+    func : The function to be decorated.
+    compare : A function to perform the comparison. When the decorated function
+        returns, this function is called with the result. Debug mode is entered
+        if the function call evaluates to True.
+    debugger : The debugger to use when debug mode is entered. This can be
+        either the debugging module itself or a string containing the name of
+        the debugging module. Currently, pdb and ipdb are supported.
+    '''
+
+    if func is None:
+        return partial(breakOnResult, compare=compare, debugger=debugger)
+
+    debugger = _import(debugger)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+
+        if compare(result):
+            debug_frame = sys._getframe.f_back
+            _set_trace(debug_frame, debugger)
+
+        return result
+    return wrapper
+
+
+def breakOnException(func=None, *, exceptionList=Exception, debugger='pdb'):
+    '''
+    A decorator that causes debug mode to be entered when the decorated
+    function throws a specified exception.
+
+    func : The function to be decorated.
+    exceptionList : A tuple of exceptions to break on.
+    debugger : The debugger to use when debug mode is entered. This can be
+        either the debugging module itself or a string containing the name of
+        the debugging module. Currently, pdb and ipdb are supported.
+    '''
+
+    if func is None:
+        return partial(breakOnException, exceptionList=exceptionList,
+                       debugger=debugger)
+
+    debugger = _import(debugger)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            result = func(*args, **kwargs)
+            return result
+        except exceptionList as e:
+            debug_frame = sys._getframe.f_back
+            _set_trace(debug_frame, debugger)
+    return wrapper
 
 
 class Sleuth:
@@ -264,6 +314,13 @@ def _import(module):
             return __import__(module)
     else:
         raise ImportError
+
+
+def _set_trace(frame, debugger):
+    if debugger.__name__ == 'pdb':
+        debugger.Pdb().set_trace(frame)
+    else:
+        debugger.set_trace(frame)
 
 
 if __name__ == '__main__':
