@@ -90,8 +90,7 @@ def breakOnEnter(func=None, *, debugger='pdb'):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        result = debugger.runcall(func, *args, **kwargs)
-        return result
+        return debugger.runcall(func, *args, **kwargs)
     return wrapper
 
 
@@ -173,11 +172,48 @@ def breakOnException(func=None, *, exceptionList=Exception, debugger='pdb'):
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
-            result = func(*args, **kwargs)
-            return result
+            return func(*args, **kwargs)
         except exceptionList as e:
             debug_frame = sys._getframe.f_back
             _set_trace(debug_frame, debugger)
+    return wrapper
+
+
+def skip(func=None, *, returnValue=None):
+    '''
+    A decorator that causes the call to the decorated function to be skipped.
+
+    func : The function to be decorated.
+    returnValue : A value to return when the decorated function would normally
+        be called. This is None by default.
+    '''
+
+    if func is None:
+        return partial(skip, returnValue=returnValue)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return returnValue
+    return wrapper
+
+
+def substitute(func=None, *, replacement=None):
+    '''
+    A decorator that substitutes calls to the decorated function with calls to
+    a replacement funciton.
+
+    func : The function to be decorated.
+    replacement : A function to be substituted for the decorated function. The
+        replacement function is called with the same arguments as would be
+        passed to the decorated function.
+    '''
+
+    if func is None:
+        return partial(substitute, replacement=replacement)
+
+    @wraps
+    def wrapper(func):
+        return replacement(*args, **kwargs)
     return wrapper
 
 
