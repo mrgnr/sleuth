@@ -128,7 +128,7 @@ def breakOnResult(func=None, *, compare=None, debugger='pdb'):
     func : The function to be decorated.
     compare : A function to perform the comparison. When the decorated function
         returns, this function is called with the result. Debug mode is entered
-        if the function call evaluates to True.
+        if the compare function returns True.
     debugger : The debugger to use when debug mode is entered. This can be
         either the debugging module itself or a string containing the name of
         the debugging module. Currently, pdb and ipdb are supported.
@@ -179,13 +179,113 @@ def breakOnException(func=None, *, exceptionList=Exception, debugger='pdb'):
     return wrapper
 
 
+def callOnEnter(func=None, *, callback=None):
+    '''
+    A decorator that calls a callback function before the decorated function
+    is called.
+
+    func : The function to be decorated.
+    callback : The callback function to call. This function is called with the
+        same arguments as the decorated function.
+    '''
+
+    if func is None:
+        return partial(callOnEnter, callback=callback)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        callback(*args, **kwargs)  # TODO: add attribute for retval
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def callOnExit(func=None, *, callback=None):
+    '''
+    A decorator that calls a callback function after the decorated function is
+    called.
+
+    func : The function to be decorated.
+    callback : The callback function to call. This function is called with the
+        return value of the decorated function. The return value of the
+        callback function is ultimately returned to the caller of the decorated
+        function.
+    '''
+
+    if func is None:
+        return partial(callOnExit, callback=callback)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        return callback(result)
+    return wrapper
+
+
+def callOnResult(func=None, *, compare=None, callback=None):
+    '''
+    A decorator that calls a callback function when the decorated function
+    returns a certain result.
+
+    func : The function to be decorated.
+    compare : A function to perform the comparison. When the decorated function
+        returns, this function is called with the result. The callback function
+        is called if the compare function returns True.
+    callback : The callback function to call. This function is called with the
+        return value of the decorated function if the compare function returns
+        True. If called, the return value of the callback function is
+        ultimately returned to the caller of the decorated function.
+    '''
+
+    if func is None:
+        return partial(callOnResult, compare=compare, callback=callback)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+
+        if compare(result):
+            callback(result)
+
+        return result
+    return wrapper
+
+
+def callOnException(func=None, *, exceptionList=Exception, callback=None):
+    '''
+    A decorator that calls a callback function when the decorated function
+    throws a specified exception.
+
+    func : The function to be decorated.
+    exceptionList : A tuple of exceptions on which to call the callback
+        function.
+    callback : The callback function to call. This function is called with the
+        exception thrown by the decorated function. After the callback function
+        returns, the exception is reraised if the return value of the callback
+        function was False. Otherwise, the exception is caught and suppressed.
+        By default, the exception is reraised if the callback function returns
+        no value.
+    '''
+
+    if func is None:
+        return partial(callOnException, exceptionList=exceptionList,
+                       callback=callback)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except exceptionList as e:
+            if not callback(e):
+                raise e
+
+
 def skip(func=None, *, returnValue=None):
     '''
     A decorator that causes the call to the decorated function to be skipped.
 
     func : The function to be decorated.
-    returnValue : A value to return when the decorated function would normally
-        be called. This is None by default.
+    returnValue : A value to return in place of the value that would normally
+        be returned by the decorated function. This is None by default.
     '''
 
     if func is None:
