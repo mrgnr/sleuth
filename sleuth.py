@@ -6,21 +6,6 @@ from functools import wraps
 import logging
 
 
-def junk():
-    '''
-    For testing purposes only.
-    '''
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            print('decorator start')
-            result = func(*args, **kwargs)
-            print('decorator end')
-            return result
-        return wrapper
-    return decorator
-
-
 def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None):
     '''
     A decorator that logs call information about a function. Logging is
@@ -317,67 +302,54 @@ def substitute(func=None, *, replacement=None):
     return wrapper
 
 
-class Sleuth:
-    def parseConfig(self, configFile):
-        import configparser
-        config = configparser.ConfigParser(allow_no_value=True)
-        config.read(configFile)
-        modules = list(config['MODULES'])
-
-        for module in module:
-            __import__(module)
-
-    def set_env(self, filename):
-        '''
-        import __main__
-        __main__.__dict__.clear()
-        __main__.__dict__.update({'__name__': '__main__',
-                                  '__file__': filename,})
-                                  #'__builtins__': __builtins__})
-        '''
-
-        import __main__
-        globals = __main__.__dict__
-        locals = globals
-
-        with open(filename) as f:
-            code = f.read()
-            exec(code, globals, locals)
+def _import(module):
+    if isinstance(module, types.ModuleType):
+        return module
+    elif isinstance(module, str):
+        major, minor, *junk = sys.version_info
+        if major >= 3 and minor >= 1:
+            import importlib
+            return importlib.import_module(module)
+        else:
+            return __import__(module)
+    else:
+        raise ImportError
 
 
-def tap(func, dec, *args, **kwargs):
-    '''
-    import pdb
-    pdb.set_trace()
-    '''
-
-    module = sys.modules[func.__module__]
-    wrapped = dec(*args, **kwargs)(func)
-
-    parent = _get_parent_scope(func, module)
-    setattr(parent, func.__name__, wrapped)
-    # TODO: is func.__name__ always correct?
+def _set_trace(frame, debugger):
+    if debugger.__name__ == 'pdb':
+        debugger.Pdb().set_trace(frame)
+    else:
+        debugger.set_trace(frame)
 
 
 def _get_parent_scope(func, module):
-    path = None
-    if hasattr(func, '__qualname__'):
-        qualname = func.__qualname__
-        attrs = qualname.split('.')
-        path = [module]
+    '''
+    Obtain the parent scope of a function given the module in which it is
+    defined.
+    '''
 
-        for attr in attrs:
-            path.append(getattr(path[-1], attr))
-    else:
-        path = search(func, module, limit=100)
+    path = _search(func, module, limit=100)
 
     if path is not None:
         return path[-2]
     else:
-        raise ValueError('Function not found.')
+        raise ValueError("The function '{0}' could not be found within module "
+                         "'{1}'.".format(func.__name__, module.__name__))
 
 
-def search(func, module, limit):
+def _search(func, module, limit):
+    '''
+    Get the path of a function from the starting with the module in which it is
+    defined; that is, the sequence of enclosing modules and classes that must
+    be followed to reach the function from its module.
+
+    Returns : A list of module and class objects which forms a path from the
+        module in which a function is defined to the function itself. The
+        first item in the list is the module in which the function is defined
+        and the last item is the function itself. Each item in the list is an
+        attribute of the previous item.
+    '''
 
     def search_helper(goal, node, path, depth, limit, seen):
         # Cut off redundant searches
@@ -426,7 +398,7 @@ def search(func, module, limit):
     return None
 
 
-def run(filename):
+def _run(filename):
     import __main__
     globals = __main__.__dict__
     locals = globals
@@ -438,32 +410,24 @@ def run(filename):
     exec(code, globals, locals)
 
 
-def _import(module):
-    if isinstance(module, types.ModuleType):
-        return module
-    elif isinstance(module, str):
-        major, minor, *junk = sys.version_info
-        if major >= 3 and minor >= 1:
-            import importlib
-            return importlib.import_module(module)
-        else:
-            return __import__(module)
-    else:
-        raise ImportError
+def tap(func, dec, *args, **kwargs):
+    try:
+        module = sys.modules[func.__module__]
+        wrapped = dec(*args, **kwargs)(func)
+    except KeyError, AttributeError:
+        raise ValueError("The module containing function '{0}' could not be "
+                         "found.".format(func.__name__))
 
-
-def _set_trace(frame, debugger):
-    if debugger.__name__ == 'pdb':
-        debugger.Pdb().set_trace(frame)
-    else:
-        debugger.set_trace(frame)
+    parent = _get_parent_scope(func, module)
+    setattr(parent, func.__name__, wrapped)
+    # TODO: is func.__name__ always correct?
 
 
 if __name__ == '__main__':
     import config
     filename = sys.argv[1]
 
-    run(filename)
+    _run(filename)
 
     # sleuth = Sleuth()
     # sleuth.parseConfig('sleuth.cfg')
