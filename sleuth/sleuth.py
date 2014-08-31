@@ -1,9 +1,15 @@
 import collections
+import logging
 import sys
 import types
 
 from functools import wraps
-import logging
+from functools import partial
+
+
+__all__ = ['breakOnEnter', 'breakOnException', 'breakOnExit', 'breakOnResult',
+           'callOnEnter', 'callOnException', 'callOnExit', 'callOnResult',
+           'logCalls', 'skip', 'substitute', 'tap']
 
 
 def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None):
@@ -262,6 +268,7 @@ def callOnException(func=None, *, exceptionList=Exception, callback=None):
         except exceptionList as e:
             if not callback(e):
                 raise e
+    return wrapper
 
 
 def skip(func=None, *, returnValue=None):
@@ -414,7 +421,7 @@ def tap(func, dec, *args, **kwargs):
     try:
         module = sys.modules[func.__module__]
         wrapped = dec(*args, **kwargs)(func)
-    except KeyError, AttributeError:
+    except (KeyError, AttributeError):
         raise ValueError("The module containing function '{0}' could not be "
                          "found.".format(func.__name__))
 
