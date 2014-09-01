@@ -1,4 +1,6 @@
 # Sleuth
+[![Build Status](https://travis-ci.org/emrob/sleuth.svg?branch=master)](https://travis-ci.org/emrob/sleuth)
+[![Coverage Status](https://img.shields.io/coveralls/emrob/sleuth.svg)](https://coveralls.io/r/emrob/sleuth)
 
 The principle behind Sleuth is simple: You shouldn't have to modify your code to
 debug it. We've all been guilty of inserting a print() statement here or there
