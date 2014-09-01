@@ -2,7 +2,16 @@ import importlib
 import sys
 import unittest
 from functools import partial
-from unittest.mock import MagicMock
+
+try:
+    from unittest.mock import MagicMock
+except ImportError:
+    from mock import MagicMock
+
+try:
+    from importlib import reload
+except ImportError:
+    from imp import reload
 
 import sleuth
 
@@ -12,8 +21,8 @@ import fakemodule
 class TestSleuthBreakOn(unittest.TestCase):
 
     def setUp(self):
-        importlib.reload(sys)
-        importlib.reload(fakemodule)
+        reload(sys)
+        reload(fakemodule)
         self.ARGS = (42, 'test', 3.14)
         self.KWARGS = {'arg1': 10, 'arg2': 'hi'}
         self.RETVAL = object()
@@ -86,7 +95,7 @@ class TestSleuthBreakOn(unittest.TestCase):
 
 class TestSleuthCallOn(unittest.TestCase):
     def setUp(self):
-        importlib.reload(fakemodule)
+        reload(fakemodule)
         self.ARGS = (42, 'test', 3.14)
         self.KWARGS = {'arg1': 10, 'arg2': 'hi'}
         self.RETVAL = object()
