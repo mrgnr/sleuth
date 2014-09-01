@@ -1,4 +1,5 @@
 import importlib
+import sys
 import unittest
 from functools import partial
 from unittest.mock import MagicMock
@@ -8,8 +9,84 @@ import sleuth
 import fakemodule
 
 
+class TestSleuthBreakOn(unittest.TestCase):
+
+    def setUp(self):
+        importlib.reload(sys)
+        importlib.reload(fakemodule)
+        self.ARGS = (42, 'test', 3.14)
+        self.KWARGS = {'arg1': 10, 'arg2': 'hi'}
+        self.RETVAL = object()
+        self.EXCEPTION = Exception()
+        sys.settrace = MagicMock()
+
+    def tearDown(self):
+        self.ARGS = None
+        self.KWARGS = None
+        self.RETVAL = None
+        self.EXCEPTION = None
+        fakemodule = None
+        sys = None
+
+    def test_breakOnEnter(self):
+        sleuth.tap(fakemodule.doNothing, sleuth.breakOnEnter,
+                   debugger='pdb')
+        fakemodule.doNothing(self.ARGS, self.KWARGS)
+        self.assertTrue(sys.settrace.called)
+
+    def test_breakOnExit(self):
+        sleuth.tap(fakemodule.doNothing, sleuth.breakOnExit,
+                   debugger='pdb')
+        fakemodule.doNothing(self.ARGS, self.KWARGS)
+        self.assertTrue(sys.settrace.called)
+
+    def test_breakOnResult_true(self):
+        def compare(result):
+            return result is self.RETVAL
+
+        sleuth.tap(fakemodule.returnValue, sleuth.breakOnResult,
+                   compare=compare, debugger='pdb')
+        fakemodule.returnValue(self.RETVAL)
+        self.assertTrue(sys.settrace.called)
+
+    def test_breakOnResult_false(self):
+        def compare(result):
+            return result is self.RETVAL
+
+        sleuth.tap(fakemodule.returnValue, sleuth.breakOnResult,
+                   compare=compare, debugger='pdb')
+        fakemodule.returnValue(None)
+        self.assertFalse(sys.settrace.called)
+
+    def test_breakOnException_with_exception(self):
+        sleuth.tap(fakemodule.raiseException, sleuth.breakOnException,
+                   exceptionList=(Exception,), debugger='pdb')
+        fakemodule.raiseException(self.EXCEPTION)
+        self.assertTrue(sys.settrace.called)
+
+    def test_breakOnException_other_exception(self):
+        caughtException = False
+
+        try:
+            sleuth.tap(fakemodule.raiseException, sleuth.breakOnException,
+                       exceptionList=(ValueError,), debugger='pdb')
+            fakemodule.raiseException(self.EXCEPTION)
+        except Exception as e:
+            caughtException = True
+        finally:
+            self.assertTrue(caughtException)
+            self.assertFalse(sys.settrace.called)
+
+    def test_callOnException_no_exception(self):
+        sleuth.tap(fakemodule.doNothing, sleuth.breakOnException,
+                   exceptionList=(Exception,), debugger='pdb')
+        fakemodule.doNothing()
+        self.assertFalse(sys.settrace.called)
+
+
 class TestSleuthCallOn(unittest.TestCase):
     def setUp(self):
+        importlib.reload(fakemodule)
         self.ARGS = (42, 'test', 3.14)
         self.KWARGS = {'arg1': 10, 'arg2': 'hi'}
         self.RETVAL = object()
@@ -20,9 +97,8 @@ class TestSleuthCallOn(unittest.TestCase):
         self.ARGS = None
         self.KWARGS = None
         self.RETVAL = None
-        self.EXCEPTION = Exception()
+        self.EXCEPTION = None
         self.CALLBACK = None
-        importlib.reload(fakemodule)
 
     def test_callOnEnter(self):
         sleuth.tap(fakemodule.doNothing, sleuth.callOnEnter,

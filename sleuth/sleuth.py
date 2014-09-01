@@ -104,7 +104,7 @@ def breakOnExit(func=None, *, debugger='pdb'):
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
 
-        debug_frame = sys._getframe.f_back
+        debug_frame = sys._getframe().f_back
         _set_trace(debug_frame, debugger)
 
         return result
@@ -135,7 +135,7 @@ def breakOnResult(func=None, *, compare=None, debugger='pdb'):
         result = func(*args, **kwargs)
 
         if compare(result):
-            debug_frame = sys._getframe.f_back
+            debug_frame = sys._getframe().f_back
             _set_trace(debug_frame, debugger)
 
         return result
@@ -165,7 +165,7 @@ def breakOnException(func=None, *, exceptionList=Exception, debugger='pdb'):
         try:
             return func(*args, **kwargs)
         except exceptionList as e:
-            debug_frame = sys._getframe.f_back
+            debug_frame = sys._getframe().f_back
             _set_trace(debug_frame, debugger)
     return wrapper
 

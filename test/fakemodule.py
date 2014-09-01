@@ -4,7 +4,7 @@ from functools import wraps
 
 def doNothing(*args, **kwargs):
     '''
-    A test function that take any arguments and does nothing.
+    A test function that takes any arguments and does nothing.
     '''
 
     pass
