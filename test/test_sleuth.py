@@ -86,7 +86,7 @@ class TestSleuthBreakOn(unittest.TestCase):
             self.assertTrue(caughtException)
             self.assertFalse(sys.settrace.called)
 
-    def test_callOnException_no_exception(self):
+    def test_breakOnException_no_exception(self):
         sleuth.tap(fakemodule.doNothing, sleuth.breakOnException,
                    exceptionList=(Exception,), debugger='pdb')
         fakemodule.doNothing()
