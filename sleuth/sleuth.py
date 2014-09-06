@@ -12,7 +12,8 @@ __all__ = ['breakOnEnter', 'breakOnException', 'breakOnExit', 'breakOnResult',
            'logCalls', 'skip', 'substitute', 'tap']
 
 
-def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None):
+def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None,
+             level=logging.DEBUG, logName=None, timerFunc=None):
     '''
     A decorator that logs call information about a function. Logging is
     performed when the decorated function is entered as well as exited.  The
@@ -20,44 +21,69 @@ def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None):
     each call takes is logged in addition to the name of the function.
 
     enterFmtStr : A formatted string to output when the decorated function is
-        entered. The format() function is called on the string with the call
-        number and the name of the function. If not specified, this argument
-        is set to '[{}] Calling {}()'.
+        entered. The format() function is called on the string with locals().
+        If not specified, this argument is set to
+        '[{callNumber}] Calling {funcName}()'.
 
-    enterFmtStr : A formatted string to output when the decorated function is
-        exited. The format() function is called on the string with the call
-        number, the name of the function, and the total time the function took
-        to execute. If not specified, this argument is set to
-        '[{}] Exiting {}()\t[{} seconds]'.
+    exitFmtStr : A formatted string to output when the decorated function is
+        exited. The format() function is called on the string with locals(). If
+        not specified, this argument is set to
+        '[{callNumber}] Exiting {funcName}()\t[{callTime} seconds]'.
+
+    level : The logging level to use for logging calls. This must be one of the
+        logging level constants defined in the logging module.
+
+    logName : The name of the log which is written to by logging calls. If not
+        given, the name of the module in which the decorated function is
+        defined is used, i.e. func.__module__.
+
+    timerFunc : The function to use for timing the duration of function calls.
+        This function is called before and after the decorated function is
+        called. The difference between the two return values of the timing
+        function is used as the duration of the function call. If not given,
+        time.process_time is used.
     '''
 
     if func is None:
-        return partial(func, enterFmtStr=enterFmtStr, exitFmtStr=exitFmtStr)
-
-    import time
+        return partial(logCalls, enterFmtStr=enterFmtStr,
+                       exitFmtStr=exitFmtStr, level=level, logName=logName,
+                       timerFunc=timerFunc)
 
     # The number of times the wrapped function has been called
     nCalls = 0
 
     if enterFmtStr is None:
-        enterFmtStr = '[{}] Calling {}()'
+        enterFmtStr = '[{callNumber}] Calling {funcName}()'
 
     if exitFmtStr is None:
-        exitFmtStr = '[{}] Exiting {}()\t[{} seconds]'
+        exitFmtStr = ('[{callNumber}] Exiting {funcName}()\t[{callTime} '
+                      'seconds]')
+
+    if logName is None:
+        logName = func.__module__
+
+    if timerFunc is None:
+        import time
+        timerFunc = time.process_time
 
     @wraps(func)
     def wrapper(*args, **kwargs):
         nonlocal nCalls
-        logger = logging.getLogger(func.__module__)
+        funcName = func.__name__
 
-        logger.debug(enterFmtStr.format(nCalls, func.__name__))
         callNumber = nCalls
+        logger = logging.getLogger(logName)
+        logMsg = enterFmtStr.format(**locals())
+        logger.log(level, logMsg)
         nCalls = nCalls + 1
-        start = time.time()
+
+        start = timerFunc()
         result = func(*args, **kwargs)
-        end = time.time()
-        logger.debug(exitFmtStr.format(callNumber, func.__name__,
-                                       round(end-start, 4)))
+        end = timerFunc()
+
+        callTime = round(end - start, 4)  # TODO: use string formatting instead
+        logMsg = exitFmtStr.format(**locals())
+        logger.log(level, logMsg)
 
         return result
     return wrapper
