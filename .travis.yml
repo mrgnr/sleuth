@@ -8,5 +8,8 @@ install:
     - pip install -r requirements.txt
     - pip install coveralls
 script:
-    - nosetests --with-coverage --cover-package=sleuth
-after_success: coveralls
+    - nosetests -vv --with-coverage --cover-package=sleuth
+after_success:
+    - if ! [[ "${TRAVIS_PYTHON_VERSION}" =~ 'pypy' ]]; then
+        coveralls;
+      fi;
