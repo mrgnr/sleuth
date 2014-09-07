@@ -1,7 +1,9 @@
 import importlib
+import logging
 import sys
 import unittest
 from functools import partial
+from io import StringIO
 
 try:
     from unittest.mock import MagicMock
@@ -16,6 +18,39 @@ except ImportError:
 import sleuth
 
 import fakemodule
+
+
+class TestSleuthLogging(unittest.TestCase):
+    def setUp(self):
+        reload(logging)
+        reload(fakemodule)
+        self.ARGS = (42, 'test', 3.14)
+        self.KWARGS = {'arg1': 10, 'arg2': 'hi'}
+        self.RETVAL = object()
+        self.EXCEPTION = Exception()
+        self.LOGNAME = 'testlog'
+        self.LOGGER = logging.getLogger(self.LOGNAME)
+        self.LOG = StringIO()
+        logging.basicConfig(level=logging.DEBUG, stream=self.LOG)
+
+    def tearDown(self):
+        self.ARGS = None
+        self.KWARGS = None
+        self.RETVAL = None
+        self.EXCEPTION = None
+        self.LOGNAME = None
+        self.LOGGER = None
+        self.LOG = None
+        fakemodule = None
+        logging = None
+
+    def test_logCalls(self):
+        enterRegex = r'\S*\[\d+\] Calling \S+\(\)'
+        exitRegex = r'\S*\[\d+] Exiting \S+\(\)\s\[\d+\.\d+ seconds\]'
+        sleuth.tap(fakemodule.doNothing, sleuth.logCalls, logName=self.LOGNAME)
+        fakemodule.doNothing(*self.ARGS, **self.KWARGS)
+        self.assertRegex(self.LOG.getvalue(), enterRegex)
+        self.assertRegex(self.LOG.getvalue(), exitRegex)
 
 
 class TestSleuthBreakOn(unittest.TestCase):
@@ -40,13 +75,13 @@ class TestSleuthBreakOn(unittest.TestCase):
     def test_breakOnEnter(self):
         sleuth.tap(fakemodule.doNothing, sleuth.breakOnEnter,
                    debugger='pdb')
-        fakemodule.doNothing(self.ARGS, self.KWARGS)
+        fakemodule.doNothing(*self.ARGS, **self.KWARGS)
         self.assertTrue(sys.settrace.called)
 
     def test_breakOnExit(self):
         sleuth.tap(fakemodule.doNothing, sleuth.breakOnExit,
                    debugger='pdb')
-        fakemodule.doNothing(self.ARGS, self.KWARGS)
+        fakemodule.doNothing(*self.ARGS, **self.KWARGS)
         self.assertTrue(sys.settrace.called)
 
     def test_breakOnResult_true(self):
@@ -112,8 +147,8 @@ class TestSleuthCallOn(unittest.TestCase):
     def test_callOnEnter(self):
         sleuth.tap(fakemodule.doNothing, sleuth.callOnEnter,
                    callback=self.CALLBACK)
-        fakemodule.doNothing(self.ARGS, self.KWARGS)
-        self.CALLBACK.assert_called_once_with(self.ARGS, self.KWARGS)
+        fakemodule.doNothing(*self.ARGS, **self.KWARGS)
+        self.CALLBACK.assert_called_once_with(*self.ARGS, **self.KWARGS)
 
     def test_callOnExit(self):
         sleuth.tap(fakemodule.returnValue, sleuth.callOnExit,
