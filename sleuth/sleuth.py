@@ -329,8 +329,8 @@ def substitute(func=None, *, replacement=None):
     if func is None:
         return partial(substitute, replacement=replacement)
 
-    @wraps
-    def wrapper(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
         return replacement(*args, **kwargs)
     return wrapper
 

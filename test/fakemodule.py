@@ -1,13 +1,19 @@
 from functools import partial
 from functools import wraps
 
+try:
+    from unittest.mock import MagicMock
+except ImportError:
+    from mock import MagicMock
+
 
 def doNothing(*args, **kwargs):
     '''
     A test function that takes any arguments and does nothing.
     '''
 
-    pass
+    doNothing.called = True
+doNothing.called = False
 
 
 def returnValue(return_value):

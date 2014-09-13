@@ -206,5 +206,35 @@ class TestSleuthCallOn(unittest.TestCase):
         self.assertFalse(self.CALLBACK.called)
 
 
+class TestSleuthMisc(unittest.TestCase):
+    def setUp(self):
+        reload(fakemodule)
+        self.SKIP_RETVAL = object()
+        self.RETVAL = object()
+
+    def tearDown(self):
+        self.SKIP_RETVAL = None
+        self.RETVAL = None
+        fakemodule = None
+
+    def test_skip_no_retval(self):
+        sleuth.tap(fakemodule.doNothing, sleuth.skip)
+        fakemodule.doNothing()
+        self.assertFalse(fakemodule.doNothing.called)
+
+    def test_skip_with_retval(self):
+        sleuth.tap(fakemodule.doNothing, sleuth.skip,
+                   returnValue=self.SKIP_RETVAL)
+        result = fakemodule.doNothing()
+        self.assertFalse(fakemodule.doNothing.called)
+        self.assertEqual(result, self.SKIP_RETVAL)
+
+    def test_substitue(self):
+        sleuth.tap(fakemodule.doNothing, sleuth.substitute,
+                   replacement=fakemodule.returnValue)
+        result = fakemodule.doNothing(self.RETVAL)
+        self.assertFalse(fakemodule.doNothing.called)
+        self.assertEqual(result, self.RETVAL)
+
 if __name__ == '__main__':
     unittest.main()
