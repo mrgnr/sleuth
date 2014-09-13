@@ -90,6 +90,23 @@ def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None,
 
 def logOnException(func=None, *, exceptionList=Exception, suppress=False,
                    fmtStr=None, level=logging.DEBUG, logName=None):
+    '''
+    A decorator that logs information when an exception is thrown by the
+    decorated function.
+
+    func : The function to be decorated.
+    exceptionList : An exception or tuple of exceptions to be logged.
+    suppress : A boolean indicating whether a caught exception should be
+        suppressed. If False, the exception is reraised. This only applies to
+        exceptions specified in exceptionList.
+    fmtStr : A formatted string to output when the decorated function raises a
+        specified exception.
+    level : The logging level to use for logging calls. This must be one of the
+        logging level constants defined in the logging module.
+    logName : The name of the log which is written to by logging calls. If not
+        given, the name of the module in which the decorated function is
+        defined is used, i.e. func.__module__.
+    '''
 
     if func is None:
         return partial(logOnException, exceptionList=exceptionList,
@@ -204,7 +221,7 @@ def breakOnException(func=None, *, exceptionList=Exception, debugger='pdb'):
     function throws a specified exception.
 
     func : The function to be decorated.
-    exceptionList : A tuple of exceptions to break on.
+    exceptionList : An exception or tuple of exceptions to break on.
     debugger : The debugger to use when debug mode is entered. This can be
         either the debugging module itself or a string containing the name of
         the debugging module. Currently, pdb and ipdb are supported.
