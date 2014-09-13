@@ -52,6 +52,48 @@ class TestSleuthLogging(unittest.TestCase):
         self.assertRegex(self.LOG.getvalue(), enterRegex)
         self.assertRegex(self.LOG.getvalue(), exitRegex)
 
+    def test_logOnException_with_exception(self):
+        caughtException = False
+        logRegex = r"Exception raised in \S*(): '\S*: \S*'"
+        sleuth.tap(fakemodule.raiseException, sleuth.logOnException,
+                   exceptionList=(Exception,))
+
+        try:
+            fakemodule.raiseException(self.EXCEPTION)
+        except Exception as e:
+            caughtException = True
+        finally:
+            self.assertTrue(caughtException)
+            self.assertRegex(self.LOG.getvalue(), logRegex)
+
+    def test_logOnException_with_exception_suppress(self):
+        logRegex = r"Exception raised in \S*(): '\S*: \S*'"
+        sleuth.tap(fakemodule.raiseException, sleuth.logOnException,
+                   exceptionList=(Exception,), suppress=True)
+        fakemodule.raiseException(self.EXCEPTION)
+        self.assertRegex(self.LOG.getvalue(), logRegex)
+
+    def test_logOnException_other_exception(self):
+        caughtException = False
+        logRegex = r'^$'
+        sleuth.tap(fakemodule.raiseException, sleuth.logOnException,
+                   exceptionList=(ValueError,))
+
+        try:
+            fakemodule.raiseException(self.EXCEPTION)
+        except Exception as e:
+            caughtException = True
+        finally:
+            self.assertTrue(caughtException)
+            self.assertRegex(self.LOG.getvalue(), logRegex)
+
+    def test_logOnException_no_exception(self):
+        logRegex = r'^$'
+        sleuth.tap(fakemodule.doNothing, sleuth.logOnException,
+                   exceptionList=(Exception,), suppress=True)
+        fakemodule.doNothing()
+        self.assertRegex(self.LOG.getvalue(), logRegex)
+
 
 class TestSleuthBreakOn(unittest.TestCase):
 
