@@ -1,4 +1,3 @@
-import collections
 import logging
 import sys
 import types
@@ -9,7 +8,7 @@ from functools import partial
 
 __all__ = ['breakOnEnter', 'breakOnException', 'breakOnExit', 'breakOnResult',
            'callOnEnter', 'callOnException', 'callOnExit', 'callOnResult',
-           'logCalls', 'skip', 'substitute', 'tap']
+           'logCalls', 'logOnException', 'skip', 'substitute', 'tap']
 
 
 def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None,
@@ -86,6 +85,37 @@ def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None,
         logger.log(level, logMsg)
 
         return result
+    return wrapper
+
+
+def logOnException(func=None, *, exceptionList=Exception, suppress=False,
+                   fmtStr=None, level=logging.DEBUG, logName=None):
+
+    if func is None:
+        return partial(logOnException, exceptionList=exceptionList,
+                       suppress=suppress, fmtStr=fmtStr, level=level,
+                       logName=logName)
+
+    if fmtStr is None:
+        fmtStr = ("Exception raised in {funcName}(): '{exceptionType}: "
+                  "{exception}'")
+
+    if logName is None:
+        logName = func.__module__
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except exceptionList as exception:
+            exceptionType = exception.__class__.__name__
+            funcName = func.__name__
+            logger = logging.getLogger(logName)
+            logMsg = fmtStr.format(**locals())
+            logger.log(level, logMsg)
+
+            if not suppress:
+                raise exception
     return wrapper
 
 
