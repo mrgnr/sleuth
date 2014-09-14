@@ -40,7 +40,7 @@ def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None,
         This function is called before and after the decorated function is
         called. The difference between the two return values of the timing
         function is used as the duration of the function call. If not given,
-        time.process_time is used.
+        time.time is used.
     '''
 
     if func is None:
@@ -63,7 +63,7 @@ def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None,
 
     if timerFunc is None:
         import time
-        timerFunc = time.process_time
+        timerFunc = time.time
 
     @wraps(func)
     def wrapper(*args, **kwargs):
