@@ -29,7 +29,6 @@ class TestSleuthLogging(unittest.TestCase):
         self.RETVAL = object()
         self.EXCEPTION = Exception()
         self.LOGNAME = 'testlog'
-        self.LOGGER = logging.getLogger(self.LOGNAME)
         self.LOG = StringIO()
         logging.basicConfig(level=logging.DEBUG, stream=self.LOG)
 
@@ -39,7 +38,6 @@ class TestSleuthLogging(unittest.TestCase):
         self.RETVAL = None
         self.EXCEPTION = None
         self.LOGNAME = None
-        self.LOGGER = None
         self.LOG = None
         fakemodule = None
         logging = None
@@ -47,6 +45,15 @@ class TestSleuthLogging(unittest.TestCase):
     def test_logCalls(self):
         enterRegex = r'\S*\[\d+\] Calling \S+\(\)'
         exitRegex = r'\S*\[\d+] Exiting \S+\(\)\s\[\d+\.\d+ seconds\]'
+        sleuth.tap(fakemodule.doNothing, sleuth.logCalls)
+        fakemodule.doNothing(*self.ARGS, **self.KWARGS)
+        self.assertRegex(self.LOG.getvalue(), enterRegex)
+        self.assertRegex(self.LOG.getvalue(), exitRegex)
+
+    def test_logCalls_with_logName(self):
+        enterRegex = r'\S*{0}\S*\[\d+\] Calling \S+\(\)'.format(self.LOGNAME)
+        exitRegex = (r'\S*{0}\S*\[\d+] Exiting \S+\(\)\s\[\d+\.\d+ seconds\]'
+                     .format(self.LOGNAME))
         sleuth.tap(fakemodule.doNothing, sleuth.logCalls, logName=self.LOGNAME)
         fakemodule.doNothing(*self.ARGS, **self.KWARGS)
         self.assertRegex(self.LOG.getvalue(), enterRegex)
@@ -74,6 +81,8 @@ class TestSleuthLogging(unittest.TestCase):
         self.assertRegex(self.LOG.getvalue(), logRegex)
 
     def test_logOnException_other_exception(self):
+        # In this case, nothing should be logged because the raised exception
+        # is not in exceptionList
         caughtException = False
         logRegex = r'^$'
         sleuth.tap(fakemodule.raiseException, sleuth.logOnException,
@@ -123,6 +132,19 @@ class TestSleuthBreakOn(unittest.TestCase):
     def test_breakOnExit(self):
         sleuth.tap(fakemodule.doNothing, sleuth.breakOnExit,
                    debugger='pdb')
+        fakemodule.doNothing(*self.ARGS, **self.KWARGS)
+        self.assertTrue(sys.settrace.called)
+
+    def test_breakOnExit_ipdb(self):
+        sleuth.tap(fakemodule.doNothing, sleuth.breakOnExit,
+                   debugger='ipdb')
+        fakemodule.doNothing(*self.ARGS, **self.KWARGS)
+        self.assertTrue(sys.settrace.called)
+
+    def test_breakOnExit_ipdb_module(self):
+        import ipdb
+        sleuth.tap(fakemodule.doNothing, sleuth.breakOnExit,
+                   debugger=ipdb)
         fakemodule.doNothing(*self.ARGS, **self.KWARGS)
         self.assertTrue(sys.settrace.called)
 
@@ -217,7 +239,22 @@ class TestSleuthCallOn(unittest.TestCase):
         self.assertFalse(self.CALLBACK.called)
 
     def test_callOnException_with_exception(self):
-        # Don't reraise exception in callback
+        # Don't suppress exception
+        self.CALLBACK.return_value = False
+
+        caughtException = False
+        sleuth.tap(fakemodule.raiseException, sleuth.callOnException,
+                   exceptionList=(Exception,), callback=self.CALLBACK)
+        try:
+            fakemodule.raiseException(self.EXCEPTION)
+        except Exception as e:
+            caughtException = True
+        finally:
+            self.assertTrue(caughtException)
+            self.CALLBACK.assert_called_once_with(self.EXCEPTION)
+
+    def test_callOnException_with_exception_suppress(self):
+        # Suppress exception
         self.CALLBACK.return_value = True
 
         sleuth.tap(fakemodule.raiseException, sleuth.callOnException,
@@ -229,7 +266,7 @@ class TestSleuthCallOn(unittest.TestCase):
         caughtException = False
 
         try:
-            # Don't reraise exception in callback
+            # Suppress exception if callback is called
             self.CALLBACK.return_value = True
 
             sleuth.tap(fakemodule.raiseException, sleuth.callOnException,
