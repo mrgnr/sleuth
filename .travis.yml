@@ -4,15 +4,23 @@ python:
     - "3.3"
     - "3.4"
     - "pypy3"
+
+matrix:
+    fast_finish: true
+    allow_failures:
+        - python: "pypy3"
+
 install:
     - pip install -r requirements.txt
     - pip install coveralls
+
 script:
     - if ! [[ "${TRAVIS_PYTHON_VERSION}" =~ 'pypy' ]]; then
         nosetests -vv --with-coverage --cover-package=sleuth;
       else
         nosetests -vv;
       fi;
+
 after_success:
     - if ! [[ "${TRAVIS_PYTHON_VERSION}" =~ 'pypy' ]]; then
         coveralls;
