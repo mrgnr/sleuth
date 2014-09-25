@@ -132,7 +132,7 @@ def logOnException(func=None, *, exceptionList=Exception, suppress=False,
             logger.log(level, logMsg)
 
             if not suppress:
-                raise exception
+                raise
     return wrapper
 
 
@@ -340,7 +340,7 @@ def callOnException(func=None, *, exceptionList=Exception, callback=None):
             return func(*args, **kwargs)
         except exceptionList as e:
             if not callback(e):
-                raise e
+                raise
     return wrapper
 
 
