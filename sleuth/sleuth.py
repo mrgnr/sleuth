@@ -478,18 +478,6 @@ def _search(func, module, limit):
     return None
 
 
-def _run(filename):
-    import __main__
-    globals = __main__.__dict__
-    locals = globals
-
-    code = ''
-    with open(filename) as f:
-        code = f.read()
-
-    exec(code, globals, locals)
-
-
 def tap(func, dec, *args, **kwargs):
     try:
         module = sys.modules[func.__module__]
@@ -501,14 +489,3 @@ def tap(func, dec, *args, **kwargs):
     parent = _get_parent_scope(func, module)
     setattr(parent, func.__name__, wrapped)
     # TODO: is func.__name__ always correct?
-
-
-if __name__ == '__main__':
-    import config
-    filename = sys.argv[1]
-
-    _run(filename)
-
-    # sleuth = Sleuth()
-    # sleuth.parseConfig('sleuth.cfg')
-    # Sleuth().set_env(filename)
