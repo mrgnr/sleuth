@@ -35,33 +35,20 @@ def _run(configFile, pyfile, preserve=False):
                         '__builtins__': __builtins__}
         __main__.__dict__.clear()
         __main__.__dict__.update(exec_context)
-        g = l = __main__.__dict__
-        return g, l
-
-    #g = globals()
-    #l = locals()
+        globals = locals = __main__.__dict__
+        return globals, locals
 
     # Execute the config file
     with open(configFile, 'rb') as f:
         code = compile(f.read(), configFile, 'exec')
-    g, l = cleanup()
-    #g, l = (g, l) if preserve else cleanup()
-    exec(code, g, l)
-    #import sleuthconfig
+    globals, locals = cleanup()
+    exec(code, globals, locals)
 
     # Execute the Python file
     with open(pyfile, 'rb') as f:
         code = compile(f.read(), pyfile, 'exec')
-    g, l = (g, l) if preserve else cleanup()
-    exec(code, g, l)
-
-    '''
-    if preserve:
-        exec(code)
-    else:
-        globals, locals = cleanup()
-        exec(code, globals, locals)
-    '''
+    globals, locals = (globals, locals) if preserve else cleanup()
+    exec(code, globals, locals)
 
 
 def main():
