@@ -6,7 +6,7 @@ import types
 from functools import wraps
 from functools import partial
 
-from error import SleuthError, SleuthNotFoundError
+from .error import SleuthError, SleuthNotFoundError
 
 
 __all__ = ['breakOnEnter', 'breakOnException', 'breakOnExit', 'breakOnResult',
