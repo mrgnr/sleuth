@@ -3,6 +3,7 @@ import os
 import sys
 
 from . import __version__
+from .error import SleuthError, SleuthNotFoundError
 
 
 def _parse_args():
@@ -12,7 +13,6 @@ def _parse_args():
     parser.add_argument('--version', '-v', action='version',
                         version='Sleuth {0}'.format(__version__))
     parser.add_argument('--config', '-c', metavar='SLEUTHCONFIG',
-                        default='sleuthconfig.py',
                         help='A Sleuth configuration file')
     parser.add_argument('--preserve', '-p', action='store_true',
                         help='Preserve the execution environment between the '
@@ -24,6 +24,16 @@ def _parse_args():
 
     args = parser.parse_args()
     return args
+
+
+def _find_config():
+    configFile = 'sleuthconfig.py'
+    for path in sys.path:
+        configPath = os.path.join(path, configFile)
+        if os.path.isfile(configPath):
+            return configPath
+
+    raise SleuthNotFoundError('{0} could not be found.'.format(configFile))
 
 
 def _run(configFile, pyfile, preserve=False):
@@ -66,13 +76,15 @@ def main():
 
     args = _parse_args()
     pyfile = args.pyfile
-    config = args.config
     sys.argv[:] = [pyfile] + args.progargs
-    sys.path[0] = os.path.realpath(pyfile)
+    sys.path[0] = os.path.dirname(os.path.realpath(pyfile))
+    config = args.config if args.config else _find_config()
 
     # TODO: remove
     print('cwd: {}'.format(os.getcwd()))
     print('pth: {}'.format(sys.path[0]))
+    print('pyfile: {}'.format(pyfile))
+    print('config: {}'.format(config))
 
     if not os.path.exists(pyfile):
         raise SystemExit('Error: {0} does not exist.'.format(pyfile))
