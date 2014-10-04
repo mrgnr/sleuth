@@ -1,9 +1,12 @@
+import argparse
 import logging
 import sys
 import types
 
 from functools import wraps
 from functools import partial
+
+from error import SleuthError, SleuthNotFoundError
 
 
 __all__ = ['breakOnEnter', 'breakOnException', 'breakOnExit', 'breakOnResult',
@@ -414,8 +417,9 @@ def _get_parent_scope(func, module):
     if path is not None:
         return path[-2]
     else:
-        raise ValueError("The function '{0}' could not be found within module "
-                         "'{1}'.".format(func.__name__, module.__name__))
+        raise SleuthNotFoundError("The function '{0}' could not be found "
+                                  "within module '{1}'."
+                                  .format(func.__name__, module.__name__))
 
 
 def _search(func, module, limit):
@@ -483,8 +487,8 @@ def tap(func, dec, *args, **kwargs):
         module = sys.modules[func.__module__]
         wrapped = dec(*args, **kwargs)(func)
     except (KeyError, AttributeError):
-        raise ValueError("The module containing function '{0}' could not be "
-                         "found.".format(func.__name__))
+        raise SleuthNotFoundError("The module containing function '{0}' could "
+                                  "not be found.".format(func.__name__))
 
     parent = _get_parent_scope(func, module)
     setattr(parent, func.__name__, wrapped)

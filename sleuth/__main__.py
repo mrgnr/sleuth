@@ -56,11 +56,23 @@ def main():
     # Modify sys.argv to hide sleuth params
     # Set sys.path to change cwd
     # Load sleuth config file
+    
+    # TODO: Tests
+    # 1) sys.argv
+    # 2) sys.path[0]
+    # 3) sleuthconfig location
+
+    print('argv: {}'.format(sys.argv))
 
     args = _parse_args()
     pyfile = args.pyfile
     config = args.config
     sys.argv[:] = [pyfile] + args.progargs
+    sys.path[0] = os.path.realpath(pyfile)
+
+    # TODO: remove
+    print('cwd: {}'.format(os.getcwd()))
+    print('pth: {}'.format(sys.path[0]))
 
     if not os.path.exists(pyfile):
         raise SystemExit('Error: {0} does not exist.'.format(pyfile))

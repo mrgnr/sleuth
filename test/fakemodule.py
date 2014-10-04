@@ -47,3 +47,13 @@ def decorator(func=None, **kwargs):
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
     return wrapper
+
+
+def doNothing_callback():
+    doNothing_callback.called = True
+doNothing_callback.called = False
+
+
+def returnValue_callback(result):
+    returnValue_callback.called = True
+returnValue_callback.called = False

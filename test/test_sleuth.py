@@ -315,5 +315,20 @@ class TestSleuthMisc(unittest.TestCase):
         self.assertFalse(fakemodule.doNothing.called)
         self.assertEqual(result, self.RETVAL)
 
+
+class TestSleuthMain(unittest.TestCase):
+    def setUp(self):
+        reload(fakemodule)
+        sys.argv[:] = [sleuth.__main__.__file__, 'fakescript.py']
+
+    def tearDown(self):
+        sys.argv[:] = []
+        fakemodule = None
+
+    def test_main(self):
+        sleuth.main()
+        self.assertTrue(fakemodule.doNothing_callback.called)
+        self.assertTrue(fakemodule.returnValue_callback.called)
+
 if __name__ == '__main__':
     unittest.main()
