@@ -16,35 +16,41 @@ __all__ = ['breakOnEnter', 'breakOnException', 'breakOnExit', 'breakOnResult',
 
 def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None,
              level=logging.DEBUG, logName=None, timerFunc=None):
-    '''
-    A decorator that logs call information about a function. Logging is
-    performed when the decorated function is entered as well as exited.  The
-    total number of times that the function has been called and the time that
-    each call takes is logged in addition to the name of the function.
+    """
+    A function wrapper that logs call information about a function.
+    
+    Logging is performed both when the wrapped function is entered and
+    exited. By default, the call number, name, and total call time of
+    the function are logged.
+    
+    Parameters
+    ----------
+    func : The function to wrap.
 
-    enterFmtStr : A formatted string to output when the decorated function is
-        entered. The format() function is called on the string with locals().
-        If not specified, this argument is set to
+    enterFmtStr : A formatted string that is output when the wrapped
+        function is entered. The format() function is called on the
+        string with locals(). If not specified, this argument is set to
         '[{callNumber}] Calling {funcName}()'.
 
-    exitFmtStr : A formatted string to output when the decorated function is
-        exited. The format() function is called on the string with locals(). If
-        not specified, this argument is set to
+    exitFmtStr : A formatted string that is output when the wrapped
+        function is exited. The format() function is called on the
+        string with locals(). If not specified, this argument is set to
         '[{callNumber}] Exiting {funcName}()\t[{callTime} seconds]'.
 
-    level : The logging level to use for logging calls. This must be one of the
-        logging level constants defined in the logging module.
+    level : The logging level used for logging calls. This must be one
+        of the logging level constants defined in the logging module,
+        e.g. logging.DEBUG.
 
-    logName : The name of the log which is written to by logging calls. If not
-        given, the name of the module in which the decorated function is
-        defined is used, i.e. func.__module__.
+    logName : The name of the log which is written to by logging calls.
+        If not given, the name of the module in which the wrapped
+        function is defined is used, i.e. func.__module__.
 
-    timerFunc : The function to use for timing the duration of function calls.
-        This function is called before and after the decorated function is
-        called. The difference between the two return values of the timing
-        function is used as the duration of the function call. If not given,
-        time.time is used.
-    '''
+    timerFunc : The function used for timing the duration of function
+        calls. This function is called before and after the wrapped
+        function is called. The difference between the two return
+        values of the timing function is used as the duration of the
+        function call. If not given, time.time is used.
+    """
 
     if func is None:
         return partial(logCalls, enterFmtStr=enterFmtStr,
@@ -93,23 +99,31 @@ def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None,
 
 def logOnException(func=None, *, exceptionList=Exception, suppress=False,
                    fmtStr=None, level=logging.DEBUG, logName=None):
-    '''
-    A decorator that logs information when an exception is thrown by the
-    decorated function.
+    """
+    A function wrapper that logs information when an exception is
+    thrown by the wrapped function.
 
-    func : The function to be decorated.
+    Parameters
+    ----------
+    func : The function to wrap.
+
     exceptionList : An exception or tuple of exceptions to be logged.
-    suppress : A boolean indicating whether a caught exception should be
-        suppressed. If False, the exception is reraised. This only applies to
-        exceptions specified in exceptionList.
-    fmtStr : A formatted string to output when the decorated function raises a
-        specified exception.
-    level : The logging level to use for logging calls. This must be one of the
-        logging level constants defined in the logging module.
-    logName : The name of the log which is written to by logging calls. If not
-        given, the name of the module in which the decorated function is
-        defined is used, i.e. func.__module__.
-    '''
+
+    suppress : A boolean indicating whether a caught exception should
+        be suppressed. If False, the exception is reraised. This only
+        applies to exceptions specified in exceptionList.
+
+    fmtStr : A formatted string that is output when the wrapped
+        function raises a specified exception.
+
+    level : The logging level used for logging calls. This must be one
+        of the logging level constants defined in the logging module,
+        e.g. logging.DEBUG.
+
+    logName : The name of the log which is written to by logging calls.
+        If not given, the name of the module in which the wrapped
+        function is defined is used, i.e. func.__module__.
+    """
 
     if func is None:
         return partial(logOnException, exceptionList=exceptionList,
@@ -140,15 +154,19 @@ def logOnException(func=None, *, exceptionList=Exception, suppress=False,
 
 
 def breakOnEnter(func=None, *, debugger='pdb'):
-    '''
-    A decorator that causes debug mode to be entered when the decorated
-    function is called.
+    """
+    A function wrapper that causes debug mode to be entered when the
+    wrapped function is called.
 
-    func : The function to be decorated.
-    debugger : The debugger to use when debug mode is entered. This can be
-        either the debugging module itself or a string containing the name of
-        the debugging module. Currently, pdb and ipdb are supported.
-    '''
+    Parameters
+    ----------
+    func : The function to wrap.
+
+    debugger : The debugger used when debug mode is entered. This can
+        be either the debugging module itself or a string containing
+        the name of the debugging module. Currently, pdb and ipdb are
+        supported.
+    """
 
     if func is None:
         return partial(breakOnEnter, debugger=debugger)
@@ -162,15 +180,19 @@ def breakOnEnter(func=None, *, debugger='pdb'):
 
 
 def breakOnExit(func=None, *, debugger='pdb'):
-    '''
-    A decorator that causes debug mode to be entered when the decorated
-    function exits.
+    """
+    A function wrapper that causes debug mode to be entered when the
+    wrapped function exits.
 
-    func : The function to be decorated.
-    debugger : The debugger to use when debug mode is entered. This can be
-        either the debugging module itself or a string containing the name of
-        the debugging module. Currently, pdb and ipdb are supported.
-    '''
+    Parameters
+    ----------
+    func : The function to wrap.
+
+    debugger : The debugger used when debug mode is entered. This can
+        be either the debugging module itself or a string containing
+        the name of the debugging module. Currently, pdb and ipdb are
+        supported.
+    """
     if func is None:
         return partial(breakOnExit, debugger=debugger)
 
@@ -188,18 +210,24 @@ def breakOnExit(func=None, *, debugger='pdb'):
 
 
 def breakOnResult(func=None, *, compare=None, debugger='pdb'):
-    '''
-    A decorator that causes debug mode to be entered when the decorated
-    function returns a certain result.
+    """
+    A function wrapper that causes debug mode to be entered when the
+    wrapped function returns a certain result.
 
-    func : The function to be decorated.
-    compare : A function to perform the comparison. When the decorated function
-        returns, this function is called with the result. Debug mode is entered
-        if the compare function returns True.
-    debugger : The debugger to use when debug mode is entered. This can be
-        either the debugging module itself or a string containing the name of
-        the debugging module. Currently, pdb and ipdb are supported.
-    '''
+    Parameters
+    ----------
+    func : The function to wrap.
+
+    compare : A function used to perform the comparison. When the
+        wrapped function returns, this function is called with the
+        result. Debug mode is entered if the compare function returns
+        True.
+
+    debugger : The debugger used when debug mode is entered. This can
+        be either the debugging module itself or a string containing
+        the name of the debugging module. Currently, pdb and ipdb are
+        supported.
+    """
 
     if func is None:
         return partial(breakOnResult, compare=compare, debugger=debugger)
@@ -219,16 +247,21 @@ def breakOnResult(func=None, *, compare=None, debugger='pdb'):
 
 
 def breakOnException(func=None, *, exceptionList=Exception, debugger='pdb'):
-    '''
-    A decorator that causes debug mode to be entered when the decorated
-    function throws a specified exception.
+    """
+    A function wrapper that causes debug mode to be entered when the
+    wrapped function throws a specified exception.
 
-    func : The function to be decorated.
+    Parameters
+    ----------
+    func : The function to wrap.
+
     exceptionList : An exception or tuple of exceptions to break on.
-    debugger : The debugger to use when debug mode is entered. This can be
-        either the debugging module itself or a string containing the name of
-        the debugging module. Currently, pdb and ipdb are supported.
-    '''
+
+    debugger : The debugger used when debug mode is entered. This can
+        be either the debugging module itself or a string containing
+        the name of the debugging module. Currently, pdb and ipdb are
+        supported.
+    """
 
     if func is None:
         return partial(breakOnException, exceptionList=exceptionList,
@@ -247,14 +280,17 @@ def breakOnException(func=None, *, exceptionList=Exception, debugger='pdb'):
 
 
 def callOnEnter(func=None, *, callback=None):
-    '''
-    A decorator that calls a callback function before the decorated function
-    is called.
+    """
+    A function wrapper that calls a callback function before the
+    wrapped function is called.
 
-    func : The function to be decorated.
-    callback : The callback function to call. This function is called with the
-        same arguments as the decorated function.
-    '''
+    Parameters
+    ----------
+    func : The function to wrap.
+
+    callback : The callback function to call. This function is called
+        with the same arguments as the wrapped function.
+    """
 
     if func is None:
         return partial(callOnEnter, callback=callback)
@@ -267,16 +303,19 @@ def callOnEnter(func=None, *, callback=None):
 
 
 def callOnExit(func=None, *, callback=None):
-    '''
-    A decorator that calls a callback function after the decorated function is
-    called.
+    """
+    A function wrapper that calls a callback function after the wrapped
+    function is called.
 
-    func : The function to be decorated.
-    callback : The callback function to call. This function is called with the
-        return value of the decorated function. The return value of the
-        callback function is ultimately returned to the caller of the decorated
-        function.
-    '''
+    Parameters
+    ----------
+    func : The function to wrap.
+
+    callback : The callback function to call. This function is called
+        with the return value of the wrapped function. The return value
+        of the callback function is ultimately returned to the caller
+        of the wrapped function.
+    """
 
     if func is None:
         return partial(callOnExit, callback=callback)
@@ -289,19 +328,25 @@ def callOnExit(func=None, *, callback=None):
 
 
 def callOnResult(func=None, *, compare=None, callback=None):
-    '''
-    A decorator that calls a callback function when the decorated function
-    returns a certain result.
+    """
+    A function wrapper that calls a callback function when the wrapped
+    function returns a certain result.
 
-    func : The function to be decorated.
-    compare : A function to perform the comparison. When the decorated function
-        returns, this function is called with the result. The callback function
-        is called if the compare function returns True.
-    callback : The callback function to call. This function is called with the
-        return value of the decorated function if the compare function returns
-        True. If called, the return value of the callback function is
-        ultimately returned to the caller of the decorated function.
-    '''
+    Parameters
+    ----------
+    func : The function to wrap.
+
+    compare : A function used to perform the comparison. When the
+        wrapped function returns, this function is called with the
+        result. The callback function is called if the compare function
+        returns True.
+
+    callback : The callback function to call. This function is called
+        with the return value of the wrapped function if the compare
+        function returns True. If called, the return value of the
+        callback function is ultimately returned to the caller of the
+        wrapped function.
+    """
 
     if func is None:
         return partial(callOnResult, compare=compare, callback=callback)
@@ -311,27 +356,31 @@ def callOnResult(func=None, *, compare=None, callback=None):
         result = func(*args, **kwargs)
 
         if compare(result):
-            callback(result)
+            result = callback(result)
 
         return result
     return wrapper
 
 
 def callOnException(func=None, *, exceptionList=Exception, callback=None):
-    '''
-    A decorator that calls a callback function when the decorated function
-    throws a specified exception.
+    """
+    A function wrapper that calls a callback function when the wrapped
+    function throws a specified exception.
 
-    func : The function to be decorated.
+    Parameters
+    ----------
+    func : The function to wrap.
+
     exceptionList : A tuple of exceptions on which to call the callback
         function.
-    callback : The callback function to call. This function is called with the
-        exception thrown by the decorated function. After the callback function
-        returns, the exception is reraised if the return value of the callback
-        function was False. Otherwise, the exception is caught and suppressed.
-        By default, the exception is reraised if the callback function returns
-        no value.
-    '''
+
+    callback : The callback function to call. This function is called
+        with the exception thrown by the wrapped function. After the
+        callback function returns, the exception is reraised if the
+        return value of the callback function was False. Otherwise, the
+        exception is caught and suppressed. By default, the exception
+        is reraised if the callback function returns no value.
+    """
 
     if func is None:
         return partial(callOnException, exceptionList=exceptionList,
@@ -348,13 +397,18 @@ def callOnException(func=None, *, exceptionList=Exception, callback=None):
 
 
 def skip(func=None, *, returnValue=None):
-    '''
-    A decorator that causes the call to the decorated function to be skipped.
+    """
+    A function wrapper that causes the call to the wrapped function to
+    be skipped.
 
-    func : The function to be decorated.
-    returnValue : A value to return in place of the value that would normally
-        be returned by the decorated function. This is None by default.
-    '''
+    Parameters
+    ----------
+    func : The function to wrap.
+
+    returnValue : A value to return in place of the value that would
+        normally be returned by the wrapped function. This is None by
+        default.
+    """
 
     if func is None:
         return partial(skip, returnValue=returnValue)
@@ -366,15 +420,18 @@ def skip(func=None, *, returnValue=None):
 
 
 def substitute(func=None, *, replacement=None):
-    '''
-    A decorator that substitutes calls to the decorated function with calls to
-    a replacement funciton.
+    """
+    A function wrapper that substitutes calls to the wrapped function
+    with calls to a replacement funciton.
 
-    func : The function to be decorated.
-    replacement : A function to be substituted for the decorated function. The
-        replacement function is called with the same arguments as would be
-        passed to the decorated function.
-    '''
+    Parameters
+    ----------
+    func : The function to wrap.
+
+    replacement : A function to be substituted for the wrapped
+        function. The replacement function is called with the same
+        arguments as would be passed to the wrapped function.
+    """
 
     if func is None:
         return partial(substitute, replacement=replacement)
@@ -383,6 +440,32 @@ def substitute(func=None, *, replacement=None):
     def wrapper(*args, **kwargs):
         return replacement(*args, **kwargs)
     return wrapper
+
+
+def tap(func, wrapper, *args, **kwargs):
+    """
+    Apply a Sleuth function wrapper to a function or method.
+
+    Parameters
+    ----------
+    func : The function to wrap.
+
+    wrapper : A Sleuth function wrapper to apply to func.
+
+    *args, **kwargs : Positional and keyword arguments that should be
+        passed to wrapper.
+    """
+
+    try:
+        module = sys.modules[func.__module__]
+    except (KeyError, AttributeError):
+        raise SleuthNotFoundError("The module containing function '{0}' could "
+                                  "not be found.".format(func.__name__))
+
+    wrapped = wrapper(*args, **kwargs)(func)
+    parent = _get_parent_scope(func, module)
+    setattr(parent, func.__name__, wrapped)
+    # TODO: is func.__name__ always correct?
 
 
 def _import(module):
@@ -407,10 +490,10 @@ def _set_trace(frame, debugger):
 
 
 def _get_parent_scope(func, module):
-    '''
-    Obtain the parent scope of a function given the module in which it is
-    defined.
-    '''
+    """
+    Obtain the parent scope of a function given the module in which it
+    is defined.
+    """
 
     path = _search(func, module, limit=100)
 
@@ -423,17 +506,19 @@ def _get_parent_scope(func, module):
 
 
 def _search(func, module, limit):
-    '''
-    Get the path of a function from the starting with the module in which it is
-    defined; that is, the sequence of enclosing modules and classes that must
-    be followed to reach the function from its module.
+    """
+    Get the path of a function starting with the module in which it is
+    defined; that is, the sequence of enclosing modules and classes
+    that must be followed to reach the function from its module.
 
-    Returns : A list of module and class objects which forms a path from the
-        module in which a function is defined to the function itself. The
-        first item in the list is the module in which the function is defined
-        and the last item is the function itself. Each item in the list is an
-        attribute of the previous item.
-    '''
+    Returns
+    -------
+    A list of module and class objects which forms a path from the
+        module in which a function is defined to the function itself.
+        The first item in the list is the module in which the function
+        is defined and the last item is the function itself. Each item
+        in the list is an attribute of the previous item.
+    """
 
     def search_helper(goal, node, path, depth, limit, seen):
         # Cut off redundant searches
@@ -480,16 +565,3 @@ def _search(func, module, limit):
             return path
 
     return None
-
-
-def tap(func, dec, *args, **kwargs):
-    try:
-        module = sys.modules[func.__module__]
-        wrapped = dec(*args, **kwargs)(func)
-    except (KeyError, AttributeError):
-        raise SleuthNotFoundError("The module containing function '{0}' could "
-                                  "not be found.".format(func.__name__))
-
-    parent = _get_parent_scope(func, module)
-    setattr(parent, func.__name__, wrapped)
-    # TODO: is func.__name__ always correct?
