@@ -18,11 +18,11 @@ def logCalls(func=None, *, enterFmtStr=None, exitFmtStr=None,
              level=logging.DEBUG, logName=None, timerFunc=None):
     """
     A function wrapper that logs call information about a function.
-    
+
     Logging is performed both when the wrapped function is entered and
     exited. By default, the call number, name, and total call time of
     the function are logged.
-    
+
     Parameters
     ----------
     func : The function to wrap.
@@ -289,7 +289,8 @@ def callOnEnter(func=None, *, callback=None):
     func : The function to wrap.
 
     callback : The callback function to call. This function is called
-        with the same arguments as the wrapped function.
+        with the wrapped function as the first argument, followed by
+        the same arguments passed to the wrapped function.
     """
 
     if func is None:
@@ -297,7 +298,7 @@ def callOnEnter(func=None, *, callback=None):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        callback(*args, **kwargs)  # TODO: add attribute for retval
+        callback(func, *args, **kwargs)  # TODO: add attribute for retval?
         return func(*args, **kwargs)
     return wrapper
 
@@ -312,9 +313,9 @@ def callOnExit(func=None, *, callback=None):
     func : The function to wrap.
 
     callback : The callback function to call. This function is called
-        with the return value of the wrapped function. The return value
-        of the callback function is ultimately returned to the caller
-        of the wrapped function.
+        with the wrapped function and the value returned by the wrapped
+        function. The return value of the callback function is
+        ultimately returned to the caller of the wrapped function.
     """
 
     if func is None:
@@ -323,7 +324,7 @@ def callOnExit(func=None, *, callback=None):
     @wraps(func)
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
-        return callback(result)
+        return callback(func, result)
     return wrapper
 
 
@@ -342,10 +343,10 @@ def callOnResult(func=None, *, compare=None, callback=None):
         returns True.
 
     callback : The callback function to call. This function is called
-        with the return value of the wrapped function if the compare
-        function returns True. If called, the return value of the
-        callback function is ultimately returned to the caller of the
-        wrapped function.
+        with the wrapped function and the value returned by the wrapped
+        function if the compare function returns True. If called, the
+        return value of the callback function is ultimately returned to
+        the caller of the wrapped function.
     """
 
     if func is None:
@@ -356,7 +357,7 @@ def callOnResult(func=None, *, compare=None, callback=None):
         result = func(*args, **kwargs)
 
         if compare(result):
-            result = callback(result)
+            result = callback(func, result)
 
         return result
     return wrapper
@@ -375,11 +376,12 @@ def callOnException(func=None, *, exceptionList=Exception, callback=None):
         function.
 
     callback : The callback function to call. This function is called
-        with the exception thrown by the wrapped function. After the
-        callback function returns, the exception is reraised if the
-        return value of the callback function was False. Otherwise, the
-        exception is caught and suppressed. By default, the exception
-        is reraised if the callback function returns no value.
+        with the wrapped function and the exception thrown by the
+        wrapped function. After the callback function returns, the
+        exception is reraised if the return value of the callback
+        function was False. Otherwise, the exception is caught and
+        suppressed. By default, the exception is reraised if the
+        callback function returns no value.
     """
 
     if func is None:
@@ -391,7 +393,7 @@ def callOnException(func=None, *, exceptionList=Exception, callback=None):
         try:
             return func(*args, **kwargs)
         except exceptionList as e:
-            if not callback(e):
+            if not callback(func, e):
                 raise
     return wrapper
 
