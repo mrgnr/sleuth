@@ -66,7 +66,7 @@ def main():
     # Modify sys.argv to hide sleuth params
     # Set sys.path to change cwd
     # Load sleuth config file
-    
+
     # TODO: Tests
     # 1) sys.argv
     # 2) sys.path[0]
@@ -87,7 +87,7 @@ def main():
     print('config: {}'.format(config))
 
     if not os.path.exists(pyfile):
-        raise SystemExit('Error: {0} does not exist.'.format(pyfile))
+        raise SleuthNotFoundError('Error: {0} does not exist.'.format(pyfile))
 
     _run(config, pyfile, args.preserve)
 
