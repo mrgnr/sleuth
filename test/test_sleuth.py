@@ -199,7 +199,8 @@ class TestSleuthCallOn(unittest.TestCase):
         self.KWARGS = {'arg1': 10, 'arg2': 'hi'}
         self.RETVAL = object()
         self.EXCEPTION = Exception()
-        self.CALLBACK = MagicMock()
+        self.CALLBACK_RETVAL = object()
+        self.CALLBACK = MagicMock(return_value=self.CALLBACK_RETVAL)
 
     def tearDown(self):
         self.ARGS = None
@@ -207,36 +208,52 @@ class TestSleuthCallOn(unittest.TestCase):
         self.RETVAL = None
         self.EXCEPTION = None
         self.CALLBACK = None
+        self.CALLBACK_RETVAL = None
 
     def test_callOnEnter(self):
         sleuth.tap(fakemodule.doNothing, sleuth.callOnEnter,
                    callback=self.CALLBACK)
         fakemodule.doNothing(*self.ARGS, **self.KWARGS)
-        self.CALLBACK.assert_called_once_with(*self.ARGS, **self.KWARGS)
+        self.CALLBACK.assert_called_once_with(fakemodule.doNothing.__wrapped__,
+                                              *self.ARGS, **self.KWARGS)
+
+    def test_callOnEnter_check_return(self):
+        sleuth.tap(fakemodule.returnValue, sleuth.callOnEnter,
+                   callback=self.CALLBACK)
+        result = fakemodule.returnValue(self.RETVAL)
+        self.CALLBACK.assert_called_once_with(
+            fakemodule.returnValue.__wrapped__, self.RETVAL)
+        self.assertEqual(result, self.RETVAL)
 
     def test_callOnExit(self):
         sleuth.tap(fakemodule.returnValue, sleuth.callOnExit,
                    callback=self.CALLBACK)
-        fakemodule.returnValue(self.RETVAL)
-        self.CALLBACK.assert_called_once_with(self.RETVAL)
+        result = fakemodule.returnValue(self.RETVAL)
+        self.CALLBACK.assert_called_once_with(
+            fakemodule.returnValue.__wrapped__, self.RETVAL)
+        self.assertEqual(result, self.CALLBACK_RETVAL)
 
+    # TODO: verify that value of callback is returned (see doc)
     def test_callOnResult_true(self):
         def compare(result):
-            return result is self.RETVAL
+            return True
 
         sleuth.tap(fakemodule.returnValue, sleuth.callOnResult,
                    compare=compare, callback=self.CALLBACK)
-        fakemodule.returnValue(self.RETVAL)
-        self.CALLBACK.assert_called_once_with(self.RETVAL)
+        result = fakemodule.returnValue(self.RETVAL)
+        self.CALLBACK.assert_called_once_with(
+            fakemodule.returnValue.__wrapped__, self.RETVAL)
+        self.assertEqual(result, self.CALLBACK_RETVAL)
 
     def test_callOnResult_false(self):
         def compare(result):
-            return result is self.RETVAL
+            return False
 
         sleuth.tap(fakemodule.returnValue, sleuth.callOnResult,
                    compare=compare, callback=self.CALLBACK)
-        fakemodule.returnValue(None)
+        result = fakemodule.returnValue(self.RETVAL)
         self.assertFalse(self.CALLBACK.called)
+        self.assertEqual(result, self.RETVAL)
 
     def test_callOnException_with_exception(self):
         # Don't suppress exception
@@ -251,7 +268,8 @@ class TestSleuthCallOn(unittest.TestCase):
             caughtException = True
         finally:
             self.assertTrue(caughtException)
-            self.CALLBACK.assert_called_once_with(self.EXCEPTION)
+            self.CALLBACK.assert_called_once_with(
+                fakemodule.raiseException.__wrapped__, self.EXCEPTION)
 
     def test_callOnException_with_exception_suppress(self):
         # Suppress exception
@@ -260,7 +278,8 @@ class TestSleuthCallOn(unittest.TestCase):
         sleuth.tap(fakemodule.raiseException, sleuth.callOnException,
                    exceptionList=(Exception,), callback=self.CALLBACK)
         fakemodule.raiseException(self.EXCEPTION)
-        self.CALLBACK.assert_called_once_with(self.EXCEPTION)
+        self.CALLBACK.assert_called_once_with(
+            fakemodule.raiseException.__wrapped__, self.EXCEPTION)
 
     def test_callOnException_other_exception(self):
         caughtException = False
@@ -279,10 +298,11 @@ class TestSleuthCallOn(unittest.TestCase):
             self.assertFalse(self.CALLBACK.called)
 
     def test_callOnException_no_exception(self):
-        sleuth.tap(fakemodule.doNothing, sleuth.callOnException,
+        sleuth.tap(fakemodule.returnValue, sleuth.callOnException,
                    exceptionList=(Exception,), callback=self.CALLBACK)
-        fakemodule.doNothing()
+        result = fakemodule.returnValue(self.RETVAL)
         self.assertFalse(self.CALLBACK.called)
+        self.assertEqual(result, self.RETVAL)
 
 
 class TestSleuthMisc(unittest.TestCase):
