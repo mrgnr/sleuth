@@ -233,7 +233,6 @@ class TestSleuthCallOn(unittest.TestCase):
             fakemodule.returnValue.__wrapped__, self.RETVAL)
         self.assertEqual(result, self.CALLBACK_RETVAL)
 
-    # TODO: verify that value of callback is returned (see doc)
     def test_callOnResult_true(self):
         def compare(result):
             return True
