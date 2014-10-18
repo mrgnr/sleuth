@@ -18,9 +18,9 @@ def _parse_args():
                         help='Preserve the execution environment between the '
                         'execution of the configuration file and the '
                         'execution of the Python file')
-    parser.add_argument('pyfile', help='The Python script to run')
-    parser.add_argument('progargs', metavar='arg', nargs='*',
-                        help='An argument for the Python script')
+    parser.add_argument('script', help='The Python script to run')
+    parser.add_argument('args', nargs=argparse.REMAINDER,
+                        help='Arguments for the Python script')
 
     args = parser.parse_args()
     return args
@@ -75,8 +75,8 @@ def main():
     print('argv: {}'.format(sys.argv))
 
     args = _parse_args()
-    pyfile = args.pyfile
-    sys.argv[:] = [pyfile] + args.progargs
+    pyfile = args.script
+    sys.argv[:] = [pyfile] + args.args
     sys.path[0] = os.path.dirname(os.path.realpath(pyfile))
     config = args.config if args.config else _find_config()
 
