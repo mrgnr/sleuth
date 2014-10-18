@@ -3,10 +3,10 @@
 [![Coverage Status](https://img.shields.io/coveralls/emrob/sleuth.svg)](https://coveralls.io/r/emrob/sleuth)
 
 The principle behind Sleuth is simple: You shouldn't have to modify your code
-to debug it. Sometimes it's just easier to insert print() statements than to
-fire up a debugger, but then your code becomes littered with debugging
+to debug it. Sometimes it's just easier to insert `print()` statements than it
+is to fire up a debugger, but then your code becomes littered with debugging
 statements that must be removed later. With Sleuth, all of your debugging code
-goes into a Sleuth config file, freeing you of dealing with the mess resulting
+goes into a Sleuth config file, freeing you of cleaning up the mess resulting
 from a long debugging session.
 
 
@@ -54,7 +54,7 @@ DEBUG:subprocess:[0] Exiting check_call()	[0.0038 seconds]
 - Call other functions
     - `callOnEnter()` - Call a function before a wrapped function is entered
     - `callOnException()` - Call a function when a wrapped function raises an exception
-    - `callOnExit()` - Call a function immediately after a wrapped function is exited
+    - `callOnExit()` - Call a function immediately after a wrapped function exits
     - `callOnResult()` - Call a function when a wrapped function returns a certain result
 - Skip or substitute a function call
     - `skip()` - Skip any calls to the wrapped function
@@ -75,12 +75,12 @@ function wrappers that work with the `tap()` function.
 
 ## Sleuth plays nicely with others
 
-Sleuth uses the standard logging module, so there's no extra work to do if
-you've already configured your loggers. Simply `tap` your functions with
-`logCalls()` or `logOnException()` and Sleuth and `logging` will do the rest.
-For debugging, the `breakOn...()` wrappers have baked-in support for Python's
-standard `pdb` module and IPython's `ipdb` module. In theory, you could also
-use your own debugging module with Sleuth as long as it supports a similar
+Sleuth uses the standard `logging` module, so there's no extra work to do if
+you've already configured logging for your project. Simply `tap` your functions
+with `logCalls()` or `logOnException()` and Sleuth and `logging` will do the
+rest.  For debugging, the `breakOn...()` wrappers have baked-in support for
+Python's standard `pdb` module and IPython's `ipdb` module. You can also use
+your own debugging module with Sleuth as long as it supports a similar
 interface.
 
 
