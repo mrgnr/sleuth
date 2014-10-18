@@ -69,7 +69,7 @@ def main():
     config = args.config if args.config else _find_config()
 
     if not os.path.exists(pyfile):
-        raise SleuthNotFoundError('Error: {0} does not exist.'.format(pyfile))
+        raise SleuthNotFoundError('{0} could not be found.'.format(pyfile))
 
     _run(config, pyfile, args.preserve)
 
