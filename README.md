@@ -86,5 +86,5 @@ interface.
 
 ## In development!
 
-Sleuth is still very much in development. Nothing is guaranteed to work at the
-moment. Please check back in the near future for updates :)
+Sleuth is still very much in development, but you can find stable versions in
+the releases. Please check back in the near future for updates :)
