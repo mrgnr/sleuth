@@ -13,4 +13,4 @@ __version__ = '0.2.0d'
 from .__main__ import main
 from .error import *
 from .inject import *
-from .sleuth import *
+from .wrap import *
