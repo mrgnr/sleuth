@@ -48,17 +48,19 @@ def _run(configFile, pyfile, preserve=False):
         globals = locals = __main__.__dict__
         return globals, locals
 
-    # Execute the config file
-    with open(configFile, 'rb') as f:
-        code = compile(f.read(), configFile, 'exec')
-    globals, locals = cleanup()
-    exec(code, globals, locals)
+    from sleuth.inject import Injector
+    with Injector():
+        # Execute the config file
+        with open(configFile, 'rb') as f:
+            code = compile(f.read(), configFile, 'exec')
+        globals, locals = cleanup()
+        exec(code, globals, locals)
 
-    # Execute the Python file
-    with open(pyfile, 'rb') as f:
-        code = compile(f.read(), pyfile, 'exec')
-    globals, locals = (globals, locals) if preserve else cleanup()
-    exec(code, globals, locals)
+        # Execute the Python file
+        with open(pyfile, 'rb') as f:
+            code = compile(f.read(), pyfile, 'exec')
+        globals, locals = (globals, locals) if preserve else cleanup()
+        exec(code, globals, locals)
 
 
 def main():
