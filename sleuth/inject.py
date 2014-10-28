@@ -3,8 +3,7 @@ import sys
 from collections import defaultdict
 
 
-__all__ = ['trace', 'breakAt', 'printAt', 'logAt', 'callAt', 'commentAt',
-           'injectAt']
+__all__ = ['breakAt', 'printAt', 'logAt', 'callAt', 'commentAt', 'injectAt']
 
 
 def breakAt(filename, line):
