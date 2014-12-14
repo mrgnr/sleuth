@@ -6,75 +6,65 @@ from collections import defaultdict
 __all__ = ['breakAt', 'printAt', 'logAt', 'callAt', 'commentAt', 'injectAt']
 
 
-def breakAt(filename, line):
+def breakAt(filename, line, indent=None):
+    stmt = 'import pdb; pdb.set_trace()'
+    _injector.add(filename, line, stmt)
+
+
+def printAt(filename, line, fmtStr, indent=None):
+    stmt = 'print("{0}".format(**locals()))'.format(fmtStr)
+    _injector.add(filename, line, stmt)
+
+
+def logAt(filename, line, fmtStr, indent=None):
     pass
 
 
-def printAt(filename, line, fmtStr):
-    _injector.print(filename, line, fmtStr)
-
-
-def logAt(filename, line, fmtStr):
+def callAt(filename, line, func, args=None, kwargs=None, indent=None):
     pass
 
 
-def callAt(filename, line, func, args=None, kwargs=None):
+def commentAt(filename, start, end=None, indent=None):
     pass
 
 
-def commentAt(filename, start, end=None):
-    pass
-
-
-def injectAt(filename, line, code):
-    pass
+def injectAt(filename, line, code, indent=None):
+    _injector.add(filename, line, code)
 
 
 class _Injector:
-    """
-    Inject code into a running program by using CPython's tracing
-    functionality. This class should only be used internally by this module.
-    """
-
     def __init__(self):
-        # (filename, line): [(func, args), ...]
-        self.actions = defaultdict(list)
+        # self._code[filename][line] -> [statement_1, ..., statement_n]
+        self._code = defaultdict(lambda: defaultdict(list))
+
         self._enabled = False
 
-    def _settrace(self, trace):
-        # TODO: implement wrapper for sys.settrace() to manage other clients
-        # of sys.settrace().
-        pass
+    def add(self, filename, line, stmt):
+        if not stmt.endswith('\n'):
+            stmt += '\n'
+        self._code[filename][line].append(stmt)
+
+    def inject(self, filename):
+        modified_file = ''
+        statements = self._code[filename]
+        with open(filename, 'rt') as f:
+            for lineno, line in enumerate(f, start=1):
+                indent_len = len(line) - len(line.lstrip())
+                indent = line[0: indent_len]
+
+                if lineno in statements:
+                    lines = [indent + statement for statement in
+                             statements[lineno]]
+                    modified_file += ''.join(lines)
+                modified_file += line
+
+        return modified_file
 
     def enable(self):
-        sys.settrace(self.trace)
-        sys.settrace = self._settrace
         self._enabled = True
 
     def disable(self):
-        sys.settrace(None)
         self._enabled = False
-
-    def trace(self, frame, event, arg):
-        if self._enabled and event == 'line':
-            code = frame.f_code
-            filename = os.path.realpath(code.co_filename)
-            lineno = frame.f_lineno
-
-            loc = (filename, lineno)
-            if loc in self.actions:
-                for func, args in self.actions[loc]:
-                    func(frame, *args)
-
-        return self.trace
-
-    def print(self, filename, line, fmtStr, where):
-        loc = (os.path.realpath(filename), line)
-        args = (fmtStr, where,)
-        self.actions[loc].append((self.do_print, args))
-
-    def do_print(self, frame, fmtStr, where):
-        print(fmtStr)
 
 
 # The global _Injector instance. This should be accessed by clients via the
@@ -93,6 +83,7 @@ class Injector:
 
     def __enter__(self):
         self._injector.enable()
+        return self._injector
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._injector.disable()

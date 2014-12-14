@@ -49,7 +49,7 @@ def _run(configFile, pyfile, preserve=False):
         return globals, locals
 
     from sleuth.inject import Injector
-    with Injector():
+    with Injector() as inj:
         # Execute the config file
         with open(configFile, 'rb') as f:
             code = compile(f.read(), configFile, 'exec')
@@ -57,8 +57,8 @@ def _run(configFile, pyfile, preserve=False):
         exec(code, globals, locals)
 
         # Execute the Python file
-        with open(pyfile, 'rb') as f:
-            code = compile(f.read(), pyfile, 'exec')
+        modified_code = inj.inject(pyfile)
+        code = compile(modified_code, pyfile, 'exec')
         globals, locals = (globals, locals) if preserve else cleanup()
         exec(code, globals, locals)
 
