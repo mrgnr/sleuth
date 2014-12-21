@@ -13,7 +13,8 @@ def break_at(filename, line, indent=None):
 
 
 def print_at(filename, line, fmtStr, file=None, indent=None):
-    action = _Print(fmtStr, file, indent)
+    action = _Print(fmtStr, file)
+    action.indent = indent
     _injector.add(filename, line, action)
 
 
@@ -22,7 +23,11 @@ def log_at(filename, line, fmtStr, indent=None):
 
 
 def call_at(filename, line, func, args=None, kwargs=None, indent=None):
-    pass
+    args = args if args is not None else []
+    kwargs = kwargs if kwargs is not None else {}
+    action = _Call(func, *args, **kwargs)
+    action.indent = indent
+    _injector.add(filename, line, action)
 
 
 def comment_at(filename, start, end=None, indent=None):
@@ -34,35 +39,26 @@ def inject_at(filename, line, code, indent=None):
 
 
 class _Action:
-    @property
-    def indent(self):
-        return None
+    def __init__(self):
+        self.indent = None
 
     def __call__(self, locals_, globals_):
         pass
 
 
 class _Break(_Action):
-    def __init__(self, indent=None):
-        self._indent = indent
-
-    @property
-    def indent(self):
-        return self._indent
+    def __init__(self):
+        super().__init__()
 
     def __call__(self, locals_, globals_):
         pdb.set_trace()
 
 
 class _Print(_Action):
-    def __init__(self, fmtStr, file=None, indent=None):
+    def __init__(self, fmtStr, file=None):
+        super().__init__()
         self._fmtStr = fmtStr
         self._file = file if file is not None else sys.stdout
-        self._indent = indent
-
-    @property
-    def indent(self):
-        return self._indent
 
     def __call__(self, locals_, globals_):
         vars_ = dict(globals_)
@@ -73,6 +69,21 @@ class _Print(_Action):
                 print(self._fmtStr.format(**vars_), file=f)
         else:
             print(self._fmtStr.format(**vars_), file=self._file)
+
+
+class _Call(_Action):
+    def __init__(self, func, *args, **kwargs):
+        super().__init__()
+        self._func = func
+        self._args = args
+        self._kwargs = kwargs
+
+    def __call__(self, locals_, globals_):
+        vars_ = dict(globals_)
+        vars_.update(locals_)
+        args = [vars_[arg] for arg in self._args]
+        kwargs = {key: vars_[val] for key, val in self._kwargs.items()}
+        self._func(*args, **kwargs)
 
 
 class _Injector:
