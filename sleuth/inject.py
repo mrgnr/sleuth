@@ -2,13 +2,15 @@ import os.path
 import sys
 from collections import defaultdict
 
+from ._util import import_, set_trace
+
 
 __all__ = ['break_at', 'print_at', 'log_at', 'call_at', 'comment_at',
            'inject_at']
 
 
-def break_at(filename, line, indent=None):
-    action = _Break()
+def break_at(filename, line, debugger='pdb', indent=None):
+    action = _Break(debugger)
     _injector.add(filename, line, action)
 
 
@@ -38,20 +40,26 @@ def inject_at(filename, line, code, indent=None):
     _injector.add(filename, line, code)
 
 
+def _getframe():
+    """ Get the execution frame of the caller. """
+    return sys._getframe().f_back
+
+
 class _Action:
     def __init__(self):
         self.indent = None
 
-    def __call__(self, locals_, globals_):
+    def __call__(self, frame):
         pass
 
 
 class _Break(_Action):
-    def __init__(self):
+    def __init__(self, debugger):
         super().__init__()
+        self._debugger = import_(debugger)
 
-    def __call__(self, locals_, globals_):
-        pdb.set_trace()
+    def __call__(self, frame):
+        set_trace(frame, self._debugger)
 
 
 class _Print(_Action):
@@ -60,9 +68,9 @@ class _Print(_Action):
         self._fmtStr = fmtStr
         self._file = file if file is not None else sys.stdout
 
-    def __call__(self, locals_, globals_):
-        vars_ = dict(globals_)
-        vars_.update(locals_)
+    def __call__(self, frame):
+        vars_ = frame.f_globals
+        vars_.update(frame.f_locals)
 
         if type(self._file) is str:
             with open(self._file, 'a') as f:
@@ -78,9 +86,9 @@ class _Call(_Action):
         self._args = args
         self._kwargs = kwargs
 
-    def __call__(self, locals_, globals_):
-        vars_ = dict(globals_)
-        vars_.update(locals_)
+    def __call__(self, frame):
+        vars_ = frame.f_globals
+        vars_.update(frame.f_locals)
         args = [vars_[arg] for arg in self._args]
         kwargs = {key: vars_[val] for key, val in self._kwargs.items()}
         self._func(*args, **kwargs)
@@ -113,17 +121,18 @@ class _Injector:
                 if lineno in actions:
                     injection = indent
                     injection += 'import sleuth.inject; '
-                    injection += ('sleuth.inject._hook("{0}", {1}, globals(), '
-                                  'locals())\n'.format(filename, lineno))
+                    injection += ('sleuth.inject._injector.hook("{0}", {1}, '
+                                  'sleuth.inject._getframe()); '
+                                  .format(filename, lineno))
                     modified_file += injection
                 modified_file += line
 
         return modified_file
 
-    def hook(self, filename, lineno, globals_, locals_):
+    def hook(self, filename, lineno, frame):
         if self._enabled:
             for action in self._actions[filename][lineno]:
-                action(globals_, locals_)
+                action(frame)
 
 
 # The global _Injector instance. This should be accessed by clients via the
@@ -146,8 +155,3 @@ class Injector:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._injector.disable()
-
-
-def _hook(filename, line, locals_, globals_):
-    """Hook function to be injected into client code."""
-    _injector.hook(filename, line, locals_, globals_)
