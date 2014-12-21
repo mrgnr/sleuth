@@ -45,22 +45,22 @@ def _run(configFile, pyfile, preserve=False):
                         '__builtins__': __builtins__}
         __main__.__dict__.clear()
         __main__.__dict__.update(exec_context)
-        globals = locals = __main__.__dict__
-        return globals, locals
+        globals_ = locals_ = __main__.__dict__
+        return globals_, locals_
 
     from sleuth.inject import Injector
     with Injector() as inj:
         # Execute the config file
         with open(configFile, 'rb') as f:
             code = compile(f.read(), configFile, 'exec')
-        globals, locals = cleanup()
-        exec(code, globals, locals)
+        globals_, locals_ = cleanup()
+        exec(code, globals_, locals_)
 
         # Execute the Python file
-        modified_code = inj.inject(pyfile)
+        modified_code = inj.inject_hooks(pyfile)
         code = compile(modified_code, pyfile, 'exec')
-        globals, locals = (globals, locals) if preserve else cleanup()
-        exec(code, globals, locals)
+        globals_, locals_ = (globals_, locals_) if preserve else cleanup()
+        exec(code, globals_, locals_)
 
 
 def main():
