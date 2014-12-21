@@ -1,4 +1,3 @@
-import argparse
 import logging
 import sys
 import types
@@ -7,6 +6,7 @@ from functools import wraps
 from functools import partial
 
 from .error import SleuthError, SleuthNotFoundError
+from ._util import import_, set_trace
 
 
 __all__ = ['breakOnEnter', 'breakOnException', 'breakOnExit', 'breakOnResult',
@@ -171,7 +171,7 @@ def breakOnEnter(func=None, *, debugger='pdb'):
     if func is None:
         return partial(breakOnEnter, debugger=debugger)
 
-    debugger = _import(debugger)
+    debugger = import_(debugger)
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -196,14 +196,14 @@ def breakOnExit(func=None, *, debugger='pdb'):
     if func is None:
         return partial(breakOnExit, debugger=debugger)
 
-    debugger = _import(debugger)
+    debugger = import_(debugger)
 
     @wraps(func)
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
 
         debug_frame = sys._getframe().f_back
-        _set_trace(debug_frame, debugger)
+        set_trace(debug_frame, debugger)
 
         return result
     return wrapper
@@ -232,7 +232,7 @@ def breakOnResult(func=None, *, compare=None, debugger='pdb'):
     if func is None:
         return partial(breakOnResult, compare=compare, debugger=debugger)
 
-    debugger = _import(debugger)
+    debugger = import_(debugger)
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -240,7 +240,7 @@ def breakOnResult(func=None, *, compare=None, debugger='pdb'):
 
         if compare(result):
             debug_frame = sys._getframe().f_back
-            _set_trace(debug_frame, debugger)
+            set_trace(debug_frame, debugger)
 
         return result
     return wrapper
@@ -267,7 +267,7 @@ def breakOnException(func=None, *, exceptionList=Exception, debugger='pdb'):
         return partial(breakOnException, exceptionList=exceptionList,
                        debugger=debugger)
 
-    debugger = _import(debugger)
+    debugger = import_(debugger)
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -275,7 +275,7 @@ def breakOnException(func=None, *, exceptionList=Exception, debugger='pdb'):
             return func(*args, **kwargs)
         except exceptionList as e:
             debug_frame = sys._getframe().f_back
-            _set_trace(debug_frame, debugger)
+            set_trace(debug_frame, debugger)
     return wrapper
 
 
@@ -468,27 +468,6 @@ def tap(func, wrapper, *args, **kwargs):
     parent = _get_parent_scope(func, module)
     setattr(parent, func.__name__, wrapped)
     # TODO: is func.__name__ always correct?
-
-
-def _import(module):
-    if isinstance(module, types.ModuleType):
-        return module
-    elif isinstance(module, str):
-        major, minor, *junk = sys.version_info
-        if major >= 3 and minor >= 1:
-            import importlib
-            return importlib.import_module(module)
-        else:
-            return __import__(module)
-    else:
-        raise ImportError
-
-
-def _set_trace(frame, debugger):
-    if debugger.__name__ == 'pdb':
-        debugger.Pdb().set_trace(frame)
-    else:
-        debugger.set_trace(frame)
 
 
 def _get_parent_scope(func, module):
