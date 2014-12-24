@@ -42,7 +42,9 @@ def comment_at(filename, start, end=None, indent=None):
 
 
 def inject_at(filename, line, code, indent=None):
-    _injector.add(filename, line, code)
+    action = _Inject(code)
+    action.indent = indent
+    _injector.add(filename, line, action)
 
 
 def _getframe():
@@ -60,6 +62,9 @@ class _Action:
 
 
 class _Break(_Action):
+    """
+    Break into debug mode in a given execution frame.
+    """
     def __init__(self, debugger):
         super().__init__()
         self._debugger = import_(debugger)
@@ -69,6 +74,9 @@ class _Break(_Action):
 
 
 class _Print(_Action):
+    """
+    Perform a printing action in the context of a given execution frame.
+    """
     def __init__(self, fmtStr, file=None):
         super().__init__()
         self._fmtStr = fmtStr
@@ -86,6 +94,9 @@ class _Print(_Action):
 
 
 class _Log(_Action):
+    """
+    Perform a logging action in the context of a given execution frame.
+    """
     def __init__(self, fmtStr, level=logging.DEBUG, logName=None):
         super().__init__()
         self._fmtStr = fmtStr
@@ -104,6 +115,9 @@ class _Log(_Action):
 
 
 class _Call(_Action):
+    """
+    Perform a function call in the context of a given execution frame.
+    """
     def __init__(self, func, *args, **kwargs):
         super().__init__()
         self._func = func
@@ -116,6 +130,22 @@ class _Call(_Action):
         args = [vars_[arg] for arg in self._args]
         kwargs = {key: vars_[val] for key, val in self._kwargs.items()}
         self._func(*args, **kwargs)
+
+
+class _Inject(_Action):
+    """
+    Perform arbitrary code injection in the context of a given
+    execution frame.
+    """
+    def __init__(self, code):
+        super().__init__()
+
+        if not code.endswith('\n'):
+            code += '\n'
+        self._code = compile(code, '<string>', 'exec')
+
+    def __call__(self, frame):
+        exec(self._code, frame.f_globals, frame.f_locals)
 
 
 class _Injector:
