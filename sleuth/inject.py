@@ -1,3 +1,4 @@
+import logging
 import os.path
 import sys
 from collections import defaultdict
@@ -11,6 +12,7 @@ __all__ = ['break_at', 'print_at', 'log_at', 'call_at', 'comment_at',
 
 def break_at(filename, line, debugger='pdb', indent=None):
     action = _Break(debugger)
+    action.indent = indent
     _injector.add(filename, line, action)
 
 
@@ -20,8 +22,11 @@ def print_at(filename, line, fmtStr, file=None, indent=None):
     _injector.add(filename, line, action)
 
 
-def log_at(filename, line, fmtStr, indent=None):
-    pass
+def log_at(filename, line, fmtStr, level=logging.DEBUG, logName=None,
+           indent=None):
+    action = _Log(fmtStr, level, logName)
+    action.indent = indent
+    _injector.add(filename, line, action)
 
 
 def call_at(filename, line, func, args=None, kwargs=None, indent=None):
@@ -41,11 +46,12 @@ def inject_at(filename, line, code, indent=None):
 
 
 def _getframe():
-    """ Get the execution frame of the caller. """
+    """Get the execution frame of the caller."""
     return sys._getframe().f_back
 
 
 class _Action:
+    """Base class for injection actions."""
     def __init__(self):
         self.indent = None
 
@@ -77,6 +83,24 @@ class _Print(_Action):
                 print(self._fmtStr.format(**vars_), file=f)
         else:
             print(self._fmtStr.format(**vars_), file=self._file)
+
+
+class _Log(_Action):
+    def __init__(self, fmtStr, level=logging.DEBUG, logName=None):
+        super().__init__()
+        self._fmtStr = fmtStr
+        self._level = level
+        self._logName = logName
+
+    def __call__(self, frame):
+        vars_ = frame.f_globals
+        vars_.update(frame.f_locals)
+
+        logName = (self._logName if self._logName is not None
+                   else vars_['__name__'])
+        logger = logging.getLogger(logName)
+        logMsg = self._fmtStr.format(**vars_)
+        logger.log(self._level, logMsg)
 
 
 class _Call(_Action):
