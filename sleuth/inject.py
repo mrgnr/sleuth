@@ -37,14 +37,18 @@ def call_at(filename, line, func, args=None, kwargs=None, indent=None):
     _injector.add(filename, line, action)
 
 
-def comment_at(filename, start, end=None, indent=None):
-    pass
-
-
 def inject_at(filename, line, code, indent=None):
     action = _Inject(code)
     action.indent = indent
     _injector.add(filename, line, action)
+
+
+def comment_at(filename, start, end=None, indent=None):
+    if end is None:
+        end = start
+
+    for lineno in range(start, end + 1):
+        _injector.comment(filename, lineno)
 
 
 def _getframe():
@@ -149,14 +153,19 @@ class _Inject(_Action):
 
 
 class _Injector:
+    """Class to store, manage, and execute injection actions."""
     def __init__(self):
         # self._actions[filename][line] -> [statement_1, ..., statement_n]
         self._actions = defaultdict(lambda: defaultdict(list))
+        self._commented = set()
 
         self._enabled = False
 
     def add(self, filename, line, action):
         self._actions[filename][line].append(action)
+
+    def comment(self, filename, line):
+        self._commented.add((filename, line))
 
     def enable(self):
         self._enabled = True
@@ -171,6 +180,9 @@ class _Injector:
             for lineno, line in enumerate(f, start=1):
                 indent_len = len(line) - len(line.lstrip())
                 indent = line[0: indent_len]
+
+                if (filename, lineno) in self._commented:
+                    line = indent + '# ' + line.lstrip()
 
                 if lineno in actions:
                     injection = indent
