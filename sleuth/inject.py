@@ -69,7 +69,7 @@ class _Break(_Action):
     """
     Break into debug mode in a given execution frame.
     """
-    def __init__(self, debugger):
+    def __init__(self, debugger='pdb'):
         super().__init__()
         self._debugger = import_(debugger)
 
