@@ -1,3 +1,4 @@
+import logging
 import sys
 import unittest
 from io import StringIO
@@ -7,15 +8,25 @@ try:
 except ImportError:
     from mock import MagicMock, mock_open, patch
 
+try:
+    from importlib import reload
+except ImportError:
+    from imp import reload
+
 from sleuth.inject import _Break, _Call, _Inject, _Log, _Print
 
 
 class TestInjectionActions(unittest.TestCase):
     def setUp(self):
-        pass
+        reload(logging)
+        self.LOGNAME = 'testlog'
+        self.LOG = StringIO()
+        logging.basicConfig(level=logging.DEBUG, stream=self.LOG)
 
     def tearDown(self):
-        pass
+        self.LOGNAME = None
+        self.LOG = None
+        logging = None
 
     def _get_test_frame(self):
         """
@@ -84,6 +95,42 @@ class TestInjectionActions(unittest.TestCase):
         action(frame)
 
         func.assert_called_once_with(message, kwarg=magic_number)
+
+    def test_Log(self):
+        # Create the action
+        fmtStr = 'LOG INJECTION TEST'
+        action = _Log(fmtStr)
+
+        # Perform the action
+        frame = self._get_test_frame()
+        expected_out = fmtStr
+        action(frame)
+
+        self.assertRegex(self.LOG.getvalue(), expected_out)
+
+    def test_Log_formatting(self):
+        # Create the action
+        fmtStr = '{message} {magic_number}'
+        action = _Log(fmtStr)
+
+        # Perform the action
+        frame = self._get_test_frame()
+        expected_out = '{message} {magic_number}'.format(**frame.f_locals)
+        action(frame)
+
+        self.assertRegex(self.LOG.getvalue(), expected_out)
+
+    def test_Log_with_logName(self):
+        # Create the action
+        fmtStr = 'LOG INJECTION TEST'
+        action = _Log(fmtStr, logName=self.LOGNAME)
+
+        # Perform the action
+        frame = self._get_test_frame()
+        expected_out = '\S*{0}\S*{1}'.format(self.LOGNAME, fmtStr)
+        action(frame)
+
+        self.assertRegex(self.LOG.getvalue(), expected_out)
 
 
 if __name__ == '__main__':
