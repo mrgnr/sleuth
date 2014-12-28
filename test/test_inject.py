@@ -99,6 +99,13 @@ class TestInjectionActions(unittest.TestCase):
 
         self.assertRegex(self.log.getvalue(), expected_out)
 
+    def test_Break(self):
+        with patch('sleuth.inject.set_trace', MagicMock()) as fake_set_trace:
+            action = _Break()
+            action(self.frame)
+
+            self.assertTrue(fake_set_trace.called)
+
 
 if __name__ == '__main__':
     unittest.main()
