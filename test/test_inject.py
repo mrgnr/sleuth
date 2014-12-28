@@ -72,10 +72,18 @@ class TestInjectionActions(unittest.TestCase):
             fake_file = fake_open.return_value.__enter__.return_value
             fake_file.write.assert_any_call(expected_out)
 
+    def test_Call(self):
+        # Create the action
+        func = MagicMock()
+        action = _Call(func, 'message', kwarg='magic_number')
 
-def _fake_open(*args, **kwargs):
-    raise Exception()
-    return StringIO()
+        # Perform the action
+        frame = self._get_test_frame()
+        message = frame.f_locals['message']
+        magic_number = frame.f_locals['magic_number']
+        action(frame)
+
+        func.assert_called_once_with(message, kwarg=magic_number)
 
 
 if __name__ == '__main__':
