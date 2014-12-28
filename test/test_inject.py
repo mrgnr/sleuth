@@ -1,12 +1,11 @@
 import sys
 import unittest
 from io import StringIO
-from unittest.mock import patch
 
 try:
-    from unittest.mock import MagicMock, mock_open
+    from unittest.mock import MagicMock, mock_open, patch
 except ImportError:
-    from mock import MagicMock, mock_open
+    from mock import MagicMock, mock_open, patch
 
 from sleuth.inject import _Break, _Call, _Inject, _Log, _Print
 
