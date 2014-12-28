@@ -104,7 +104,16 @@ class TestInjectionActions(unittest.TestCase):
             action = _Break()
             action(self.frame)
 
-            self.assertTrue(fake_set_trace.called)
+            import pdb
+            fake_set_trace.assert_called_once_with(self.frame, pdb)
+
+    def test_Break_ipdb(self):
+        with patch('sleuth.inject.set_trace', MagicMock()) as fake_set_trace:
+            action = _Break(debugger='ipdb')
+            action(self.frame)
+
+            import ipdb
+            fake_set_trace.assert_called_once_with(self.frame, ipdb)
 
 
 if __name__ == '__main__':
