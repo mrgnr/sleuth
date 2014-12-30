@@ -135,10 +135,9 @@ class TestInjectionActions(unittest.TestCase):
             action = _Inject(code)
             action(self.frame)
 
-            self.assertTrue(fake_stdout.getvalue())
-
             fake_stdout.seek(0)
-            for i, line in enumerate(fake_stdout):
+            for i in range(lines_to_print):
+                line = fake_stdout.readline()
                 self.assertEqual(line.strip(), '{0} {1}'.format(self.test_str,
                                                                 i))
 
