@@ -1,5 +1,6 @@
 import logging
 import sys
+import textwrap
 import unittest
 from io import StringIO
 
@@ -114,6 +115,32 @@ class TestInjectionActions(unittest.TestCase):
 
             import ipdb
             fake_set_trace.assert_called_once_with(self.frame, ipdb)
+
+    def test_Inject(self):
+        with patch('sys.stdout', new=StringIO()) as fake_stdout:
+            code = 'print("{0}")'.format(self.test_str)
+            action = _Inject(code)
+            action(self.frame)
+
+            self.assertEqual(fake_stdout.getvalue().strip(), self.test_str)
+
+    def test_Inject_multiline(self):
+        with patch('sys.stdout', new=StringIO()) as fake_stdout:
+            lines_to_print = 3
+            code = """\
+                   for i in range({0}):
+                       print("{1}", i)
+                   """.format(lines_to_print, self.test_str)
+            code = textwrap.dedent(code)
+            action = _Inject(code)
+            action(self.frame)
+
+            self.assertTrue(fake_stdout.getvalue())
+
+            fake_stdout.seek(0)
+            for i, line in enumerate(fake_stdout):
+                self.assertEqual(line.strip(), '{0} {1}'.format(self.test_str,
+                                                                i))
 
 
 if __name__ == '__main__':
