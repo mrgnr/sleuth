@@ -14,7 +14,11 @@ try:
 except ImportError:
     from imp import reload
 
-from sleuth.inject import _Break, _Call, _Inject, _Log, _Print
+import sleuth
+from sleuth.inject import (_Break, _Call, _Inject, _Log, _Print, break_at,
+                           call_at, comment_at, inject_at, log_at, print_at)
+
+import fakescript_inj
 
 
 class TestInjectionActions(unittest.TestCase):
@@ -140,6 +144,35 @@ class TestInjectionActions(unittest.TestCase):
                 line = fake_stdout.readline()
                 self.assertEqual(line.strip(), '{0} {1}'.format(self.test_str,
                                                                 i))
+
+
+class TestInjectionFunctions(unittest.TestCase):
+    def setUp(self):
+        self._path = list(sys.path)
+        self._argv = list(sys.argv)
+        sys.argv[:] = [sleuth.__main__.__file__, fakescript_inj.__file__]
+        self.test_str = 'INJECTION TEST'
+        self.first_msg = 'FIRST MESSAGE'
+        self.second_msg = 'SECOND MESSAGE'
+        self.test_script = fakescript_inj.__file__
+
+    def tearDown(self):
+        sys.path[:] = self._path
+        sys.argv[:] = self._argv
+        self.test_str = None
+        self.first_msg = None
+        self.second_msg = None
+        self.test_script = None
+
+    def test_print_at(self):
+        with patch('sys.stdout', new=StringIO()) as fake_stdout:
+            print_at(self.test_script, 3, self.test_str)
+            sleuth.main()
+
+            fake_stdout.seek(0)
+            self.assertEqual(fake_stdout.readline().strip(), self.first_msg)
+            self.assertEqual(fake_stdout.readline().strip(), self.test_str)
+            self.assertEqual(fake_stdout.readline().strip(), self.second_msg)
 
 
 if __name__ == '__main__':
