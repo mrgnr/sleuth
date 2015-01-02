@@ -14,7 +14,7 @@ try:
 except ImportError:
     from imp import reload
 
-import sleuth
+import sleuth.inject
 from sleuth.inject import (_Break, _Call, _Inject, _Log, _Print, break_at,
                            call_at, comment_at, inject_at, log_at, print_at)
 
@@ -148,6 +148,7 @@ class TestInjectionActions(unittest.TestCase):
 
 class TestInjectionFunctions(unittest.TestCase):
     def setUp(self):
+        reload(sleuth.inject)  # Nuke state stored within sleuth.inject
         self._path = list(sys.path)
         self._argv = list(sys.argv)
         sys.argv[:] = [sleuth.__main__.__file__, fakescript_inj.__file__]
@@ -167,6 +168,19 @@ class TestInjectionFunctions(unittest.TestCase):
     def test_print_at(self):
         with patch('sys.stdout', new=StringIO()) as fake_stdout:
             print_at(self.test_script, 3, self.test_str)
+            sleuth.main()
+
+            fake_stdout.seek(0)
+            self.assertEqual(fake_stdout.readline().strip(), self.first_msg)
+            self.assertEqual(fake_stdout.readline().strip(), self.test_str)
+            self.assertEqual(fake_stdout.readline().strip(), self.second_msg)
+
+    def test_call_at(self):
+        def func():
+            print(self.test_str)
+
+        with patch('sys.stdout', new=StringIO()) as fake_stdout:
+            call_at(self.test_script, 3, func)
             sleuth.main()
 
             fake_stdout.seek(0)
